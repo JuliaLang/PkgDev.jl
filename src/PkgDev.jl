@@ -8,12 +8,24 @@ include("generate.jl")
 const cd = Pkg.Dir.cd
 
 """
+    dir(pkg, [paths...])
+
+Returns package `pkg` directory location through search. Additional `paths` are appended.
+"""
+function dir(pkg::AbstractString)
+    pkgsrc = Base.find_in_path(pkg, Pkg.dir())
+    pkgsrc === nothing && return ""
+    abspath(dirname(pkgsrc), "..") |> realpath
+end
+dir(pkg::AbstractString, args...) = normpath(dir(pkg),args...)
+
+"""
     register(pkg, [url])
 
 Register `pkg` at the git URL `url`, defaulting to the configured origin URL of the git repo `Pkg.dir(pkg)`.
 """
-register(pkg::AbstractString) = cd(Entry.register,pkg)
-register(pkg::AbstractString, url::AbstractString) = cd(Entry.register,pkg,url)
+register(pkg::AbstractString) = Entry.register(pkg)
+register(pkg::AbstractString, url::AbstractString) = Entry.register(pkg,url)
 
 """
     tag(pkg, [ver, [commit]])

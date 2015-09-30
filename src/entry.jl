@@ -7,6 +7,7 @@ import Base.Pkg: Reqs, Read, Query, Resolve, Cache, Write, GitHub, Dir, PkgError
 import Base.LibGit2
 importall Base.LibGit2
 using Base.Pkg.Types
+import ..PkgDev
 
 
 function pull_request(dir::AbstractString, commit::AbstractString="", url::AbstractString="")
@@ -101,7 +102,8 @@ function publish(branch::AbstractString)
 end
 
 function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumber, commit::AbstractString, force::Bool=false)
-    content = with(GitRepo,pkg) do pkg_repo
+    pkgdir = PkgDev.dir(pkg)
+    content = with(GitRepo, pkgdir) do pkg_repo
         LibGit2.cat(pkg_repo, LibGit2.GitBlob, "$commit:REQUIRE")
     end
     reqs = content !== nothing ? Reqs.read(split(content, '\n', keep=false)) : Reqs.Line[]
@@ -128,11 +130,14 @@ function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumb
 end
 
 function register(pkg::AbstractString, url::AbstractString)
-    ispath(pkg,".git") || throw(PkgError("$pkg is not a git repo"))
-    isfile("METADATA",pkg,"url") && throw(PkgError("$pkg already registered"))
-    LibGit2.transact(GitRepo("METADATA")) do repo
+    pkgdir = PkgDev.dir(pkg)
+    isempty(pkgdir) && throw(PkgError("$pkg does not exist"))
+    metapath = Pkg.dir("METADATA")
+    ispath(pkgdir,".git") || throw(PkgError("$pkg is not a git repo"))
+    isfile(metapath,pkg,"url") && throw(PkgError("$pkg already registered"))
+    LibGit2.transact(GitRepo(metapath)) do repo
         # Get versions from package repo
-        versions = with(GitRepo, pkg) do pkg_repo
+        versions = with(GitRepo, pkgdir) do pkg_repo
             tags = filter(t->startswith(t,"v"), LibGit2.tag_list(pkg_repo))
             filter!(tag->ismatch(Base.VERSION_REGEX,tag), tags)
             [
@@ -141,7 +146,7 @@ function register(pkg::AbstractString, url::AbstractString)
             ]
         end
         # Register package url in METADATA
-        cd("METADATA") do
+        cd(metapath) do
             info("Registering $pkg at $url")
             mkdir(pkg)
             path = joinpath(pkg,"url")
@@ -170,9 +175,11 @@ function register(pkg::AbstractString, url::AbstractString)
 end
 
 function register(pkg::AbstractString)
+    pkgdir = PkgDev.dir(pkg)
+    isempty(pkgdir) && throw(PkgError("$pkg does not exist"))
     url = ""
     try
-        url = LibGit2.getconfig(pkg, "remote.origin.url", "")
+        url = LibGit2.getconfig(pkgdir, "remote.origin.url", "")
     catch err
         throw(PkgError("$pkg: $err"))
     end
@@ -189,18 +196,20 @@ end
 nextbump(v::VersionNumber) = isrewritable(v) ? v : nextpatch(v)
 
 function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=false, commitish::AbstractString="HEAD")
-    ispath(pkg,".git") || throw(PkgError("$pkg is not a git repo"))
-    with(GitRepo,"METADATA") do repo
+    pkgdir = PkgDev.dir(pkg)
+    ispath(pkgdir,".git") || throw(PkgError("$pkg is not a git repo"))
+    metapath = Pkg.dir("METADATA")
+    with(GitRepo,metapath) do repo
         LibGit2.isdirty(repo, pkg) && throw(PkgError("METADATA/$pkg is dirty – commit or stash changes to tag"))
     end
-    with(GitRepo,pkg) do repo
+    with(GitRepo, pkgdir) do repo
         LibGit2.isdirty(repo) && throw(PkgError("$pkg is dirty – commit or stash changes to tag"))
         commit = string(LibGit2.revparseid(repo, commitish))
-        registered = isfile("METADATA",pkg,"url")
+        registered = isfile(metapath,pkg,"url")
 
         if !force
             if registered
-                avail = Read.available(pkg)
+                avail = Pkg.cd(Pkg.Read.available, pkg)
                 existing = VersionNumber[keys(avail)...]
                 ancestors = filter(v->LibGit2.is_ancestor_of(avail[v].sha1, commit, repo), existing)
             else
@@ -233,7 +242,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
                            force=(force || isrewritable(ver)) )
         registered || return
         try
-            LibGit2.transact(GitRepo("METADATA")) do repo
+            LibGit2.transact(GitRepo(metapath)) do repo
                 write_tag_metadata(repo, pkg, ver, commit, force)
                 if LibGit2.isdirty(repo)
                     info("Committing METADATA for $pkg")
