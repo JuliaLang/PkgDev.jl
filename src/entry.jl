@@ -38,9 +38,9 @@ function pull_request(dir::AbstractString, commit::AbstractString="", url::Abstr
 end
 
 function submit(pkg::AbstractString, commit::AbstractString="")
-    urlpath = joinpath("METADATA",pkg,"url")
+    urlpath = Pkg.dir("METADATA",pkg,"url")
     url = ispath(urlpath) ? readchomp(urlpath) : ""
-    pull_request(pkg, commit, url)
+    pull_request(PkgDev.dir(pkg), commit, url)
 end
 
 function publish(branch::AbstractString)
@@ -99,7 +99,7 @@ function publish(branch::AbstractString)
         end
     end
     info("Submitting METADATA changes")
-    pull_request("METADATA")
+    pull_request(metapath)
 end
 
 function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumber, commit::AbstractString, force::Bool=false)
