@@ -27,7 +27,7 @@ function pull_request(dir::AbstractString, commit::AbstractString="", url::Abstr
         user = GitHub.user()
         info("Forking $owner/$owner_repo to $user")
         response = GitHub.fork(owner,owner_repo)
-        fork = response["ssh_url"]
+        fork = response["clone_url"]
         branch = "pull-request/$(commit[1:8])"
         info("Pushing changes as branch $branch")
         refspecs = ["HEAD:refs/heads/$branch"]  # workaround for $commit:refs/heads/$branch
