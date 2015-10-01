@@ -45,25 +45,26 @@ end
 
 function publish(branch::AbstractString)
     tags = Dict{ByteString,Vector{ASCIIString}}()
-
-    with(GitRepo, "METADATA") do repo
+    metapath = Pkg.dir("METADATA")
+    with(GitRepo, metapath) do repo
         LibGit2.branch(repo) == branch ||
             throw(PkgError("METADATA must be on $branch to publish changes"))
         LibGit2.fetch(repo)
 
         ahead_remote, ahead_local = LibGit2.revcount(repo, "origin/$branch", branch)
-        ahead_remote > 0 && throw(PkgError("METADATA is behind origin/$branch – run `Pkg.update()` before publishing"))
-        ahead_local == 0 && throw(PkgError("There are no METADATA changes to publish"))
+        rcount = min(ahead_remote, ahead_local)
+        ahead_remote-rcount > 0 && throw(PkgError("METADATA is behind origin/$branch – run `Pkg.update()` before publishing"))
+        ahead_local-rcount == 0 && throw(PkgError("There are no METADATA changes to publish"))
 
         # get changed files
         for path in LibGit2.diff_files(repo, "origin/$branch", LibGit2.Consts.HEAD_FILE)
             m = match(r"^(.+?)/versions/([^/]+)/sha1$", path)
             m !== nothing && ismatch(Base.VERSION_REGEX, m.captures[2]) || continue
             pkg, ver = m.captures; ver = convert(VersionNumber,ver)
-            sha1 = readchomp(joinpath("METADATA",path))
+            sha1 = readchomp(joinpath(metapath,path))
             old = LibGit2.cat(repo, LibGit2.GitBlob, "origin/$branch:$path")
             old !== nothing && old != sha1 && throw(PkgError("$pkg v$ver SHA1 changed in METADATA – refusing to publish"))
-            with(GitRepo, pkg) do pkg_repo
+            with(GitRepo, PkgDev.dir(pkg)) do pkg_repo
                 tag_name = "v$ver"
                 tag_commit = LibGit2.revparseid(pkg_repo, "$(tag_name)^{commit}")
                 LibGit2.iszero(tag_commit) || string(tag_commit) == sha1 || return false
@@ -78,7 +79,7 @@ function publish(branch::AbstractString)
     end
 
     for pkg in sort!(collect(keys(tags)))
-        with(GitRepo, pkg) do pkg_repo
+        with(GitRepo, PkgDev.dir(pkg)) do pkg_repo
             forced = ASCIIString[]
             unforced = ASCIIString[]
             for tag in tags[pkg]
@@ -260,7 +261,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
 end
 
 function check_metadata(pkgs::Set{ByteString} = Set{ByteString}())
-    avail = Read.available()
+    avail = Pkg.cd(Read.available)
     deps, conflicts = Query.dependencies(avail)
 
     for (dp,dv) in deps, (v,a) in dv, p in keys(a.requires)
