@@ -47,7 +47,7 @@ submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,pkg,commit
 
 For each new package version tagged in `METADATA` not already published, make sure that the tagged package commits have been pushed to the repo at the registered URL for the package and if they all have, open a pull request to `METADATA`.
 """
-publish() = cd(Entry.publish,Dir.getmetabranch())
+publish() = cd(Entry.publish,Pkg.Dir.getmetabranch())
 
 doc"""
     generate(pkg,license)
