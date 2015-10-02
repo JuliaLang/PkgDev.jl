@@ -55,8 +55,9 @@ doc"""
 Generate a new package named `pkg` with one of these license keys: `"MIT"`, `"BSD"` or `"ASL"`. If you want to make a package with a different license, you can edit it afterwards. Generate creates a git repo at `Pkg.dir(pkg)` for the package and inside it `LICENSE.md`, `README.md`, `REQUIRE`, the julia entrypoint `$pkg/src/$pkg.jl`, and Travis and AppVeyor CI configuration files `.travis.yml` and `appveyor.yml`.
 """
 generate(pkg::AbstractString, license::AbstractString;
-         force::Bool=false, authors::Union{AbstractString,Array} = [], config::Dict=Dict()) =
-    cd(Generate.package, pkg, license, force=force, authors=authors, config=config)
+         force::Bool=false, authors::Union{AbstractString,Array} = [],
+         config::Dict=Dict(), path::AbstractString = Pkg.Dir.path()) =
+    Generate.package(pkg, license, force=force, authors=authors, config=config, path=path)
 
 
 end # module

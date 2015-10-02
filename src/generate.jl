@@ -35,14 +35,16 @@ function package(
     years::Union{Int,AbstractString} = copyright_year(),
     user::AbstractString = github_user(),
     config::Dict = Dict(),
+    path::AbstractString = Pkg.Dir.path()
 )
-    isnew = !ispath(pkg)
+    pkg_path = joinpath(path,pkg)
+    isnew = !ispath(pkg_path)
     try
         repo = if isnew
             url = isempty(user) ? "" : "https://github.com/$user/$pkg.jl.git"
-            Generate.init(pkg,url,config=config)
+            Generate.init(pkg_path,url,config=config)
         else
-            repo = GitRepo(pkg)
+            repo = GitRepo(pkg_path)
             if LibGit2.isdirty(repo)
                 finalize(repo)
                 throw(PkgError("$pkg is dirty – commit or stash your changes"))
@@ -55,14 +57,14 @@ function package(
                 authors = isnew ? copyright_name(repo) : git_contributors(repo,5)
             end
 
-            files = [Generate.license(pkg,license,years,authors,force=force),
-                     Generate.readme(pkg,user,force=force),
-                     Generate.entrypoint(pkg,force=force),
-                     Generate.tests(pkg,force=force),
-                     Generate.require(pkg,force=force),
-                     Generate.travis(pkg,force=force),
-                     Generate.appveyor(pkg,force=force),
-                     Generate.gitignore(pkg,force=force) ]
+            files = [Generate.license(pkg_path,license,years,authors,force=force),
+                     Generate.readme(pkg_path,user,force=force),
+                     Generate.entrypoint(pkg_path,force=force),
+                     Generate.tests(pkg_path,force=force),
+                     Generate.require(pkg_path,force=force),
+                     Generate.travis(pkg_path,force=force),
+                     Generate.appveyor(pkg_path,force=force),
+                     Generate.gitignore(pkg_path,force=force) ]
 
             msg = """
             $pkg.jl $(isnew ? "generated" : "regenerated") files.
@@ -95,7 +97,8 @@ end
 
 function init(pkg::AbstractString, url::AbstractString=""; config::Dict=Dict())
     if !ispath(pkg)
-        info("Initializing $pkg repo: $(abspath(pkg))")
+        pkg_name = basename(pkg)
+        info("Initializing $pkg_name repo: $pkg")
         repo = LibGit2.init(pkg)
         try
             with(GitConfig, repo) do cfg
@@ -105,7 +108,7 @@ function init(pkg::AbstractString, url::AbstractString=""; config::Dict=Dict())
             end
             LibGit2.commit(repo, "initial empty commit")
         catch err
-            throw(PkgError("Unable to initialize $pkg package: $err"))
+            throw(PkgError("Unable to initialize $pkg_name package: $err"))
         end
     else
         repo = GitRepo(pkg)
@@ -273,9 +276,10 @@ function gitignore(pkg::AbstractString; force::Bool=false)
 end
 
 function entrypoint(pkg::AbstractString; force::Bool=false)
-    genfile(pkg,"src/$pkg.jl",force) do io
+    pkg_name = basename(pkg)
+    genfile(pkg,"src/$pkg_name.jl",force) do io
         print(io, """
-        module $pkg
+        module $pkg_name
 
         # package code goes here
 
