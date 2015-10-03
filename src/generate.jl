@@ -89,7 +89,7 @@ function package(
             end
         end
     catch
-        isnew && rm(pkg, recursive=true)
+        isnew && rm(pkg_path, recursive=true)
         rethrow()
     end
     return
