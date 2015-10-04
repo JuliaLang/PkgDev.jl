@@ -163,7 +163,7 @@ function register(pkg::AbstractString, url::AbstractString)
         # Commit changes in METADATA
         if LibGit2.isdirty(repo)
             info("Committing METADATA for $pkg")
-            msg = "Register $pkg"
+            msg = "Register $pkg [$url]"
             if !isempty(versions)
                 msg *= ": $(join(map(v->"v$v", vers),", "))"
             end
@@ -206,7 +206,8 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
     with(GitRepo, pkgdir) do repo
         LibGit2.isdirty(repo) && throw(PkgError("$pkg is dirty – commit or stash changes to tag"))
         commit = string(LibGit2.revparseid(repo, commitish))
-        registered = isfile(metapath,pkg,"url")
+        urlfile = joinpath(metapath,pkg,"url")
+        registered = isfile(urlfile)
 
         if !force
             if registered
@@ -247,7 +248,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
                 write_tag_metadata(repo, pkg, ver, commit, force)
                 if LibGit2.isdirty(repo)
                     info("Committing METADATA for $pkg")
-                    LibGit2.commit(repo, "Tag $pkg v$ver")
+                    LibGit2.commit(repo, "Tag $pkg v$ver [$(readchomp(urlfile))]")
                 else
                     info("No METADATA changes to commit")
                 end
