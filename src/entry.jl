@@ -20,7 +20,8 @@ function pull_request(dir::AbstractString; commit::AbstractString="", url::Abstr
         if isempty(url)
             url = LibGit2.getconfig(repo, "remote.origin.url", "")
         end
-        if isempty(branch)
+        force_branch = !isempty(branch)
+        if !force_branch
             branch = "pull-request/$(commit[1:8])"
         end
 
@@ -33,7 +34,7 @@ function pull_request(dir::AbstractString; commit::AbstractString="", url::Abstr
         fork = response["clone_url"]
         info("Pushing changes as branch $branch")
         refspecs = ["HEAD:refs/heads/$branch"]  # workaround for $commit:refs/heads/$branch
-        LibGit2.push(repo, remoteurl=fork, refspecs=refspecs)
+        LibGit2.push(repo, remoteurl=fork, refspecs=refspecs, force=force_branch)
         pr_url = "$(response["html_url"])/compare/$branch"
         info("To create a pull-request, open:\n\n  $pr_url\n")
     end
