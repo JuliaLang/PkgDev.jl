@@ -10,7 +10,7 @@ using Base.Pkg.Types
 import ..PkgDev
 
 
-function pull_request(dir::AbstractString, commit::AbstractString="", url::AbstractString="")
+function pull_request(dir::AbstractString; commit::AbstractString="", url::AbstractString="", branch::AbstractString="")
     with(GitRepo, dir) do repo
         if isempty(commit)
             commit = string(LibGit2.head_oid(repo))
@@ -20,6 +20,9 @@ function pull_request(dir::AbstractString, commit::AbstractString="", url::Abstr
         if isempty(url)
             url = LibGit2.getconfig(repo, "remote.origin.url", "")
         end
+        if isempty(branch)
+            branch = "pull-request/$(commit[1:8])"
+        end
 
         m = match(LibGit2.GITHUB_REGEX, url)
         m === nothing && throw(PkgError("not a GitHub repo URL, can't make a pull request: $url"))
@@ -28,7 +31,6 @@ function pull_request(dir::AbstractString, commit::AbstractString="", url::Abstr
         info("Forking $owner/$owner_repo to $user")
         response = GitHub.fork(owner,owner_repo)
         fork = response["clone_url"]
-        branch = "pull-request/$(commit[1:8])"
         info("Pushing changes as branch $branch")
         refspecs = ["HEAD:refs/heads/$branch"]  # workaround for $commit:refs/heads/$branch
         LibGit2.push(repo, remoteurl=fork, refspecs=refspecs)
@@ -40,10 +42,10 @@ end
 function submit(pkg::AbstractString, commit::AbstractString="")
     urlpath = Pkg.dir("METADATA",pkg,"url")
     url = ispath(urlpath) ? readchomp(urlpath) : ""
-    pull_request(PkgDev.dir(pkg), commit, url)
+    pull_request(PkgDev.dir(pkg), commit=commit, url=url)
 end
 
-function publish(branch::AbstractString)
+function publish(branch::AbstractString, prbranch::AbstractString="")
     tags = Dict{ByteString,Vector{ASCIIString}}()
     metapath = Pkg.dir("METADATA")
     with(GitRepo, metapath) do repo
@@ -99,7 +101,7 @@ function publish(branch::AbstractString)
         end
     end
     info("Submitting METADATA changes")
-    pull_request(metapath)
+    pull_request(metapath, branch=prbranch)
 end
 
 function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumber, commit::AbstractString, force::Bool=false)

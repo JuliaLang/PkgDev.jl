@@ -46,8 +46,11 @@ submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,pkg,commit
     publish()
 
 For each new package version tagged in `METADATA` not already published, make sure that the tagged package commits have been pushed to the repo at the registered URL for the package and if they all have, open a pull request to `METADATA`.
+
+A branch in user's remote fork of `METADATA` repository will be created that can be used to create pull request to `METADATA` package registry.
+Optionally, function accepts a name for a pull request branch. If it isn't provided name will be automatically generated.
 """
-publish() = Entry.publish(Pkg.Dir.getmetabranch())
+publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), prbranch)
 
 doc"""
     generate(pkg,license)
@@ -58,6 +61,5 @@ generate(pkg::AbstractString, license::AbstractString;
          force::Bool=false, authors::Union{AbstractString,Array} = [],
          config::Dict=Dict(), path::AbstractString = Pkg.Dir.path()) =
     Generate.package(pkg, license, force=force, authors=authors, config=config, path=path)
-
 
 end # module
