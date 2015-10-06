@@ -62,4 +62,61 @@ generate(pkg::AbstractString, license::AbstractString;
          config::Dict=Dict(), path::AbstractString = Pkg.Dir.path()) =
     Generate.package(pkg, license, force=force, authors=authors, config=config, path=path)
 
+"""
+    config()
+Interactive configuration of the development environment.
+
+PDK operations require `git` minimum configuration that keeps user signature (user.name & user.email).
+"""
+function config(force::Bool=false)
+    # setup global git configuration
+    cfg = LibGit2.GitConfig(LibGit2.Consts.CONFIG_LEVEL_GLOBAL)
+    try
+        println("Julia PDK configuration:")
+
+        username = LibGit2.get(cfg, "user.name", "")
+        if isempty(username) || force
+            username = LibGit2.prompt("Enter user name", default=username)
+            LibGit2.set!(cfg, "user.name", username)
+        else
+            println("User name: $username")
+        end
+
+        useremail = LibGit2.get(cfg, "user.email", "")
+        if isempty(useremail) || force
+            useremail = LibGit2.prompt("Enter user email", default=useremail)
+            LibGit2.set!(cfg, "user.email", useremail)
+        else
+            println("User email: $useremail")
+        end
+
+        # setup github account
+        ghuser = LibGit2.get(cfg, "github.user", "")
+        if isempty(ghuser) || force
+            ghuser = LibGit2.prompt("Enter GitHub user", default=(isempty(ghuser) ? username : ghuser))
+            LibGit2.set!(cfg, "github.user", ghuser)
+        else
+            println("GitHub user: $ghuser")
+        end
+    finally
+        finalize(cfg)
+    end
+    lowercase(LibGit2.prompt("Do you want to change this sconfiguration?", default="N")) == "y" && config(true)
+    return
+end
+
+
+function __init__()
+    # Check if git configuration exists
+    cfg = LibGit2.GitConfig(LibGit2.Consts.CONFIG_LEVEL_GLOBAL)
+    try
+        username = LibGit2.get(cfg, "user.name", "")
+        if isempty(username)
+            warn("Julia PDK is not configured. Please, run `PkgDev.config()` before performing any operations.")
+        end
+    finally
+        finalize(cfg)
+    end
+end
+
 end # module
