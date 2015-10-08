@@ -3,6 +3,7 @@
 module GitHub
 
 import Main, Base.Pkg.PkgError
+import JSON
 
 const AUTH_NOTE = "Julia Package Manager"
 const AUTH_DATA = Dict{Any,Any}(
@@ -25,15 +26,6 @@ function user()
     return usr
 end
 
-function json()
-    isdefined(:JSON) || try eval(Main, :(import JSON))
-    catch err
-        warn(err)
-        throw(PkgError("using the GitHub API requires having the JSON package installed "))
-    end
-    Main.JSON
-end
-
 function curl(url::AbstractString, opts::Cmd=``)
     success(`curl --version`) || throw(PkgError("using the GitHub API requires having `curl` installed"))
     out, proc = open(`curl -i -s -S $opts $url`,"r")
@@ -52,7 +44,7 @@ function curl(url::AbstractString, opts::Cmd=``)
 end
 curl(url::AbstractString, data::Void, opts::Cmd=``) = curl(url,opts)
 curl(url::AbstractString, data, opts::Cmd=``) =
-    curl(url,`--data $(sprint(io->json().print(io,data))) $opts`)
+    curl(url,`--data $(sprint(io->JSON.print(io,data))) $opts`)
 
 function delete_token()
     tokfile = Pkg.Dir.path(".github","token")
@@ -81,11 +73,11 @@ function token(user::AbstractString=user())
     end
 
     if status == 422
-        error_code = json().parse(content)["errors"][1]["code"]
-        throw(PkgError("GitHub returned validation error (422): $error_code: $(json().parse(content)["message"])"))
+        error_code = JSON.parse(content)["errors"][1]["code"]
+        throw(PkgError("GitHub returned validation error (422): $error_code: $(JSON.parse(content)["message"])"))
     else
-        (status != 401 && status != 403) || throw(PkgError("$status: $(json().parse(content)["message"])"))
-        tok = json().parse(content)["token"]
+        (status != 401 && status != 403) || throw(PkgError("$status: $(JSON.parse(content)["message"])"))
+        tok = JSON.parse(content)["token"]
     end
 
     mkpath(dirname(tokfile))
@@ -96,7 +88,7 @@ end
 function req(resource::AbstractString, data, opts::Cmd=``)
     url = "https://api.github.com/$resource"
     status, header, content = curl(url,data,`-u $(token()):x-oauth-basic $opts`)
-    response = json().parse(content)
+    response = JSON.parse(content)
     status, response
 end
 
