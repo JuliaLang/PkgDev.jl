@@ -3,11 +3,12 @@
 module Entry
 
 import Base: thispatch, nextpatch, nextminor, nextmajor, check_new_version
-import Base.Pkg: Reqs, Read, Query, Resolve, Cache, Write, GitHub, Dir, PkgError
+import Base.Pkg: Reqs, Read, Query, Resolve, PkgError
 import Base.LibGit2
 importall Base.LibGit2
 using Base.Pkg.Types
 import ..PkgDev
+import ..PkgDev.GitHub
 
 
 function pull_request(dir::AbstractString; commit::AbstractString="", url::AbstractString="", branch::AbstractString="")
@@ -34,7 +35,7 @@ function pull_request(dir::AbstractString; commit::AbstractString="", url::Abstr
         fork = response["clone_url"]
         info("Pushing changes as branch $branch")
         refspecs = ["HEAD:refs/heads/$branch"]  # workaround for $commit:refs/heads/$branch
-        LibGit2.push(repo, remoteurl=fork, refspecs=refspecs, force=force_branch)
+        LibGit2.push(repo, remoteurl=fork, refspecs=refspecs, force=force_branch, payload=GitHub.credentials())
         pr_url = "$(response["html_url"])/compare/$branch"
         info("To create a pull-request, open:\n\n  $pr_url\n")
     end
@@ -92,12 +93,14 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
             if !isempty(forced)
                 info("Pushing $pkg temporary tags: ", join(forced,", "))
                 LibGit2.push(pkg_repo, remote="origin", force=true,
-                             refspecs=["refs/tags/$tag:refs/tags/$tag" for tag in forced])
+                             refspecs=["refs/tags/$tag:refs/tags/$tag" for tag in forced],
+                             payload=GitHub.credentials())
             end
             if !isempty(unforced)
                 info("Pushing $pkg permanent tags: ", join(unforced,", "))
                 LibGit2.push(pkg_repo, remote="origin",
-                             refspecs=["refs/tags/$tag:refs/tags/$tag" for tag in unforced])
+                             refspecs=["refs/tags/$tag:refs/tags/$tag" for tag in unforced],
+                             payload=GitHub.credentials())
             end
         end
     end
@@ -188,7 +191,7 @@ function register(pkg::AbstractString)
         throw(PkgError("$pkg: $err"))
     end
     !isempty(url) || throw(PkgError("$pkg: no URL configured"))
-    register(pkg, GitHub.normalize_url(url))
+    register(pkg, LibGit2.normalize_url(url))
 end
 
 function isrewritable(v::VersionNumber)

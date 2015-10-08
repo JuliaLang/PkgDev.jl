@@ -1,7 +1,8 @@
 module PkgDev
 
-export Entry, Generate
+export Entry, Generate, GitHub
 
+include("github.jl")
 include("entry.jl")
 include("generate.jl")
 
