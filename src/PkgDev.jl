@@ -4,6 +4,7 @@ export Entry, Generate, GitHub
 
 include("github.jl")
 include("entry.jl")
+include("license.jl")
 include("generate.jl")
 
 const cd = Pkg.Dir.cd
@@ -105,7 +106,6 @@ function config(force::Bool=false)
     lowercase(LibGit2.prompt("Do you want to change this sconfiguration?", default="N")) == "y" && config(true)
     return
 end
-
 
 function __init__()
     # Check if git configuration exists
