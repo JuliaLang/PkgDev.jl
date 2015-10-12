@@ -7,7 +7,8 @@ const LICENSES = Dict(
 
 
 "Read license text from specified file and location"
-function readlicense(lic::AbstractString, dir::AbstractString=joinpath(dir("PkgDev"), "res", "licenses"))
+function readlicense(lic::AbstractString,
+                     dir::AbstractString=normpath(dirname(@__FILE__), "..", "res", "licenses"))
     return open(readall, joinpath(dir, lic))
 end
 
