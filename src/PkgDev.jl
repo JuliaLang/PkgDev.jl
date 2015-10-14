@@ -57,12 +57,14 @@ publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), pr
 doc"""
     generate(pkg,license)
 
-Generate a new package named `pkg` with one of these license keys: `"MIT"`, `"BSD"`, `"ASL"` or `"MPL"`. If you want to make a package with a different license, you can edit it afterwards. Generate creates a git repo at `Pkg.dir(pkg)` for the package and inside it `LICENSE.md`, `README.md`, `REQUIRE`, the julia entrypoint `$pkg/src/$pkg.jl`, and Travis and AppVeyor CI configuration files `.travis.yml` and `appveyor.yml`.
+Generate a new package named `pkg` with one of these license keys: `"MIT"`, `"BSD"`, `"ASL"` or `"MPL"`. If you want to make a package with a different license, you can edit it afterwards. Generate creates a git repo at `Pkg.dir(pkg)` for the package and inside it `LICENSE.md`, `README.md`, `REQUIRE`, and the julia entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using Coveralls or Codecov are created by default, but each can be disabled individually by setting `travis`, `appveyor` or `coverage` to `false`.
 """
 generate(pkg::AbstractString, license::AbstractString;
          force::Bool=false, authors::Union{AbstractString,Array} = [],
-         config::Dict=Dict(), path::AbstractString = Pkg.Dir.path()) =
-    Generate.package(pkg, license, force=force, authors=authors, config=config, path=path)
+         config::Dict=Dict(), path::AbstractString = Pkg.Dir.path(),
+         travis::Bool = true, appveyor::Bool = true, coverage::Bool = true) =
+    Generate.package(pkg, license, force=force, authors=authors, config=config, path=path,
+                     travis=travis, appveyor=appveyor, coverage=coverage)
 
 """
     config()
