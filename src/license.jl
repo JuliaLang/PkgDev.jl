@@ -1,7 +1,7 @@
 const LICENSES = Dict(
     "MIT" => "MIT \"Expat\" License",
     "BSD" => "Simplified \"2-clause\" BSD License",
-    "APL" => "Apache License, Version 2.0",
+    "ASL" => "Apache License, Version 2.0",
     "MPL" => "Mozilla Public License, Version 2.0"
 )
 
@@ -20,11 +20,11 @@ Shows available licenses if no parameters specified. If a license name is specif
 function license(lic::AbstractString="")
     if isempty(lic)
         lics =""
-        for (k, v) in LICENSES
-            lics *= " $k | $v\n"
+        for k in LICENSES |> keys |> collect |> sort
+            lics *= " $k | $(LICENSES[k])\n"
         end
         maxdesclen = maximum(map(length,values(LICENSES)))
-        lics = "Available licenses:\nLabel| Full name\n-----|$(repeat("-", maxdesclen+2))\n$lics"
+        lics = "Label| Full name\n-----|$(repeat("-", maxdesclen+2))\n$lics"
         println(lics)
         # Base.Markdown.term(STDOUT, lics)
     else
