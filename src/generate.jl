@@ -34,7 +34,10 @@ function package(
     years::Union{Int,AbstractString} = copyright_year(),
     user::AbstractString = github_user(),
     config::Dict = Dict(),
-    path::AbstractString = Pkg.Dir.path()
+    path::AbstractString = Pkg.Dir.path(),
+    travis::Bool = true,
+    appveyor::Bool = true,
+    coverage::Bool = true,
 )
     pkg_path = joinpath(path,pkg)
     isnew = !ispath(pkg_path)
@@ -57,13 +60,14 @@ function package(
             end
 
             files = [Generate.license(pkg_path,license,years,authors,force=force),
-                     Generate.readme(pkg_path,user,force=force),
+                     Generate.readme(pkg_path,user,force=force,coverage=coverage),
                      Generate.entrypoint(pkg_path,force=force),
                      Generate.tests(pkg_path,force=force),
                      Generate.require(pkg_path,force=force),
-                     Generate.travis(pkg_path,force=force),
-                     Generate.appveyor(pkg_path,force=force),
                      Generate.gitignore(pkg_path,force=force) ]
+
+            travis && push!(files, Generate.travis(pkg_path,force=force,coverage=coverage))
+            appveyor && push!(files, Generate.appveyor(pkg_path,force=force))
 
             msg = """
             $pkg.jl $(isnew ? "generated" : "regenerated") files.
@@ -158,13 +162,21 @@ function license(pkg::AbstractString,
     file
 end
 
-function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false)
+function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false, coverage::Bool=true)
     pkg_name = basename(pkg)
     genfile(pkg,"README.md",force) do io
         println(io, "# $pkg_name")
         isempty(user) && return
         url = "https://travis-ci.org/$user/$pkg_name.jl"
         println(io, "\n[![Build Status]($url.svg?branch=master)]($url)")
+        if coverage
+            coveralls_badge = "https://coveralls.io/repos/$user/$pkg_name.jl/badge.svg?branch=master&service=github"
+            coveralls_url = "https://coveralls.io/github/$user/$pkg_name.jl?branch=master"
+            println(io, "\n[![Coverage Status]($coveralls_badge)]($coveralls_url)")
+            codecov_badge = "http://codecov.io/github/$user/$pkg_name.jl/coverage.svg?branch=master"
+            codecov_url = "http://codecov.io/github/$user/$pkg_name.jl?branch=master"
+            println(io, "\n[![codecov.io]($codecov_badge)]($codecov_url)")
+        end
     end
 end
 
@@ -202,8 +214,9 @@ function require(pkg::AbstractString; force::Bool=false)
     end
 end
 
-function travis(pkg::AbstractString; force::Bool=false)
+function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
     pkg_name = basename(pkg)
+    c = coverage ? "" : "#"
     genfile(pkg,".travis.yml",force) do io
         print(io, """
         # Documentation: http://docs.travis-ci.com/user/languages/julia/
@@ -220,6 +233,11 @@ function travis(pkg::AbstractString; force::Bool=false)
         #script:
         #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
         #  - julia -e 'Pkg.clone(pwd()); Pkg.build("$pkg_name"); Pkg.test("$pkg_name"; coverage=true)'
+        $(c)after_success:
+        $(c)  # push coverage results to Coveralls
+        $(c)  - julia -e 'cd(Pkg.dir("$pkg_name")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+        $(c)  # push coverage results to Codecov
+        $(c)  - julia -e 'cd(Pkg.dir("$pkg_name")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
         """)
     end
 end
