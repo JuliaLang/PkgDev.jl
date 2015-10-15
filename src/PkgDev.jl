@@ -105,7 +105,7 @@ function config(force::Bool=false)
     finally
         finalize(cfg)
     end
-    lowercase(LibGit2.prompt("Do you want to change this sconfiguration?", default="N")) == "y" && config(true)
+    lowercase(LibGit2.prompt("Do you want to change this configuration?", default="N")) == "y" && config(true)
     return
 end
 
