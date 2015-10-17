@@ -288,7 +288,7 @@ function appveyor(pkg::AbstractString; force::Bool=false)
               Pkg.clone(pwd(), \\"$pkg_name\\"); Pkg.build(\\"$pkg_name\\")"
 
         test_script:
-          - C:\\projects\\julia\\bin\\julia --check-bounds=yes -e "Pkg.test(\\"$pkg_name\\")"
+          - C:\\projects\\julia\\bin\\julia -e "Pkg.test(\\"$pkg_name\\")"
         """)
     end
 end
