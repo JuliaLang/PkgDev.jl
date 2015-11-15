@@ -141,8 +141,8 @@ end"""
         repo = LibGit2.GitRepo(joinpath(pkgdir,"PackageWithTags"))
         try
             tags = LibGit2.tag_list(repo)
-            @test "v0.0.1" in tags == true
-            @test "v0.0.2" in tags == true
+            @test ("v0.0.1" in tags) == true
+            @test ("v0.0.2" in tags) == true
         finally
             finalize(repo)
         end
