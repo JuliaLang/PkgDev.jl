@@ -1,6 +1,6 @@
 The PkgDev.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) Copyright (c) 2009-2015: Jeff Bezanson, Stefan Karpinski, Viral B. Shah,
+> Copyright (c) 2009-2015: Jeff Bezanson, Stefan Karpinski, Viral B. Shah,
 > and other contributors:
 >
 > https://github.com/JuliaLang/julia/contributors
