@@ -189,7 +189,7 @@ function register(pkg::AbstractString)
         throw(PkgError("$pkg: $err"))
     end
     !isempty(url) || throw(PkgError("$pkg: no URL configured"))
-    register(pkg, LibGit2.normalize_url(url))
+    register(pkg, Pkg.Cache.normalize_url(url))
 end
 
 function isrewritable(v::VersionNumber)
