@@ -36,7 +36,7 @@ function curl(url::AbstractString, opts::Cmd=``)
             header[k] = v
             continue
         end
-        wait(proc); return status, header, readall(out)
+        wait(proc); return status, header, readstring(out)
     end
     throw(PkgError("strangely formatted HTTP response"))
 end
