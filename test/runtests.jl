@@ -22,7 +22,7 @@ temp_pkg_dir() do pkgdir
     @testset "testing a package with test dependencies causes them to be installed for the duration of the test" begin
         PkgDev.generate("PackageWithTestDependencies", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
         @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
-        @test readall(Pkg.dir("PackageWithTestDependencies","REQUIRE")) == "julia $(PkgDev.Generate.versionfloor(VERSION))\n"
+        @test readstring(Pkg.dir("PackageWithTestDependencies","REQUIRE")) == "julia $(PkgDev.Generate.versionfloor(VERSION))\n"
 
         isdir(Pkg.dir("PackageWithTestDependencies","test")) || mkdir(Pkg.dir("PackageWithTestDependencies","test"))
         open(Pkg.dir("PackageWithTestDependencies","test","REQUIRE"),"w") do f
@@ -121,7 +121,7 @@ end"""
         @test !isempty(covfiles)
         for file in covfiles
             @test isfile(joinpath(covdir,file))
-            covstr = readall(joinpath(covdir,file))
+            covstr = readstring(joinpath(covdir,file))
             srclines = split(src, '\n')
             covlines = split(covstr, '\n')
             for i = 1:length(linetested)

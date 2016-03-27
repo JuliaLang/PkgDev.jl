@@ -7,6 +7,7 @@ importall Base.LibGit2
 using Base.Pkg.Types
 import ..PkgDev
 import ..PkgDev.GitHub
+import URIParser
 
 
 function pull_request(dir::AbstractString; commit::AbstractString="", url::AbstractString="", branch::AbstractString="")
@@ -252,7 +253,11 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
                 write_tag_metadata(repo, pkg, ver, commit, force)
                 if LibGit2.isdirty(repo)
                     info("Committing METADATA for $pkg")
-                    LibGit2.commit(repo, "Tag $pkg v$ver [$(readchomp(urlfile))]")
+                    # Convert repo url into proper http url
+                    repouri = URIParser.URI(readchomp(urlfile))
+                    repopath = splitext(repouri.path)[1] # remove git suffix
+                    repourl = URIParser.URI("https", repouri.host, repouri.port, repopath)
+                    LibGit2.commit(repo, "Tag $pkg v$ver [$repourl]")
                 else
                     info("No METADATA changes to commit")
                 end
