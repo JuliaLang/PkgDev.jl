@@ -1,5 +1,6 @@
 using PkgDev
 using Base.Test
+using Compat
 import Base.Pkg.PkgError
 
 function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
@@ -149,3 +150,9 @@ end"""
     end
 
 end
+
+@testset "Testing package utils" begin
+    @test PkgDev.getrepohttpurl("https://github.com/JuliaLang/PkgDev.jl.git") == "https://github.com/JuliaLang/PkgDev.jl"
+    @test PkgDev.getrepohttpurl("git://github.com/JuliaLang/PkgDev.jl.git")  == "https://github.com/JuliaLang/PkgDev.jl"
+end
+

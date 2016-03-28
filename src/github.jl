@@ -2,6 +2,7 @@ module GitHub
 
 import Main, Base.Pkg.PkgError
 import JSON
+using Compat
 
 const AUTH_NOTE = "Julia Package Manager"
 const AUTH_DATA = Dict{Any,Any}(

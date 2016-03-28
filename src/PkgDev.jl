@@ -1,7 +1,10 @@
 module PkgDev
 
+using Compat
+
 export Entry, Generate, GitHub
 
+include("utils.jl")
 include("github.jl")
 include("entry.jl")
 include("license.jl")
