@@ -7,6 +7,7 @@ importall Base.LibGit2
 using Base.Pkg.Types
 import ..PkgDev
 import ..PkgDev.GitHub
+using ..PkgDev: getrepohttpurl
 
 function pull_request(dir::AbstractString; commit::AbstractString="", url::AbstractString="", branch::AbstractString="")
     with(GitRepo, dir) do repo
