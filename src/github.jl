@@ -2,6 +2,7 @@ module GitHub
 
 import Main, Base.Pkg.PkgError
 import JSON
+using Compat
 
 const AUTH_NOTE = "Julia Package Manager"
 const AUTH_DATA = Dict{Any,Any}(
@@ -35,7 +36,7 @@ function curl(url::AbstractString, opts::Cmd=``)
             header[k] = v
             continue
         end
-        wait(proc); return status, header, readall(out)
+        wait(proc); return status, header, readstring(out)
     end
     throw(PkgError("strangely formatted HTTP response"))
 end
@@ -56,6 +57,9 @@ function token(user::AbstractString=user())
     tok = readtoken(tokfile)
     !isempty(tok) && return tok
 
+    info("""
+Creating a personal access token for Julia Package Manager on GitHub.
+\tYou will be asked to provide credentials to your GitHub account.""")
     params = merge(AUTH_DATA, Dict("fingerprint" => randstring(40)))
     status, header, content = curl("https://api.github.com/authorizations",params,`-u $user`)
     tfa = false
