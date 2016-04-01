@@ -7,7 +7,7 @@ using Compat
 const AUTH_NOTE = "Julia Package Manager"
 const AUTH_DATA = Dict{Any,Any}(
     "scopes" => ["repo"],
-    "note" => AUTH_NOTE,
+    "note" => "$AUTH_NOTE: $(gethostname())",
     "note_url" => "http://docs.julialang.org/en/latest/manual/packages/",
 )
 
@@ -15,11 +15,10 @@ function user()
     usr = LibGit2.getconfig("github.user", "")
     if isempty(usr) #TODO: add `config` command to Git REPL and change below info
         throw(PkgError("""
-        no GitHub user name configured; please configure it with:
+        no GitHub user name configured; please configure with:
 
-            git config --global github.user USERNAME
+            PkgDev.config()
 
-        where USERNAME is replaced with your GitHub user name.
         """))
     end
     return usr
@@ -58,6 +57,9 @@ function token(user::AbstractString=user())
     tok = readtoken(tokfile)
     !isempty(tok) && return tok
 
+    info("""
+Creating a personal access token for Julia Package Manager on GitHub.
+\tYou will be asked to provide credentials to your GitHub account.""")
     params = merge(AUTH_DATA, Dict("fingerprint" => randstring(40)))
     status, header, content = curl("https://api.github.com/authorizations",params,`-u $user`)
     tfa = false
