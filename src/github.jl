@@ -6,7 +6,7 @@ import JSON
 const AUTH_NOTE = "Julia Package Manager"
 const AUTH_DATA = Dict{Any,Any}(
     "scopes" => ["repo"],
-    "note" => AUTH_NOTE,
+    "note" => "$AUTH_NOTE: $(gethostname())",
     "note_url" => "http://docs.julialang.org/en/latest/manual/packages/",
 )
 
@@ -14,11 +14,10 @@ function user()
     usr = LibGit2.getconfig("github.user", "")
     if isempty(usr) #TODO: add `config` command to Git REPL and change below info
         throw(PkgError("""
-        no GitHub user name configured; please configure it with:
+        no GitHub user name configured; please configure with:
 
-            git config --global github.user USERNAME
+            PkgDev.config()
 
-        where USERNAME is replaced with your GitHub user name.
         """))
     end
     return usr
