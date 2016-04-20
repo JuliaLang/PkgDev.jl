@@ -9,6 +9,7 @@ include("github.jl")
 include("entry.jl")
 include("license.jl")
 include("generate.jl")
+include("bundle.jl")
 
 const cd = Pkg.Dir.cd
 
