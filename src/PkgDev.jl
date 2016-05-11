@@ -119,7 +119,7 @@ end
 Returns a list of packages which are good candidates for
 `Pkg.free`. These are packages for which you are not tracking the
 tagged release, but for which a tagged release is equivalent to the
-current version. You can use `Pkg.free(Pkg.freeable())` to
+current version. You can use `Pkg.free(PkgDev.freeable())` to
 automatically free all such packages.
 
 This also prints (to `io`, defaulting to standard output) a list of
