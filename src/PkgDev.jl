@@ -1,6 +1,7 @@
 module PkgDev
 
 using Compat
+import Compat.String
 
 export Entry, Generate, GitHub
 
