@@ -30,3 +30,15 @@ Keyword parameters:
 
 ### license([lic])
 List all bundled licenses. If a license label specified as a parameter then a full text of the license will be printed.
+
+### freeable([io])
+Returns a list of packages which are good candidates for
+`Pkg.free`. These are packages for which you are not tracking the
+tagged release, but for which a tagged release is equivalent to the
+current version. You can use `Pkg.free(Pkg.freeable())` to
+automatically free all such packages.
+
+This also prints (to `io`, defaulting to standard output) a list of
+packages that are ahead of a tagged release, and prints the number of
+commits that separate them. It can help discover packages that may be
+due for tagging.

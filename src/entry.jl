@@ -286,4 +286,39 @@ function check_metadata(pkgs::Set{ByteString} = Set{ByteString}())
     return
 end
 
+function freeable(io::IO = STDOUT)
+    function latest_tag(pkgname)
+        avail = Read.available(pkgname)
+        k = sort(collect(keys(avail)))
+        isempty(k) ? Nullable{keytype(avail)}() : Nullable(avail[k[end]])
+    end
+    freelist = Any[]
+    firstprint = true
+    cd(Pkg.dir()) do
+        for (pkg, status) in sort!(collect(Read.installed()), by=first)
+            ver, fix = status
+            if fix
+                LibGit2.with(GitRepo(pkg)) do repo
+                    head = string(LibGit2.head_oid(repo))
+                    tag = latest_tag(pkg)
+                    isnull(tag) && return
+                    taggedsha = get(tag).sha1
+                    if head != taggedsha
+                        vrs = LibGit2.revcount(repo, taggedsha, head)
+                        n = vrs[2] - vrs[1]
+                        if firstprint
+                            println(io, "Packages with a gap between HEAD and the most recent tag:")
+                            firstprint = false
+                        end
+                        println(io, pkg, ": ", n)
+                    else
+                        push!(freelist, pkg)
+                    end
+                end
+            end
+        end
+    end
+    freelist
+end
+
 end
