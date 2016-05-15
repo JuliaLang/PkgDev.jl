@@ -149,10 +149,18 @@ end"""
         end
     end
 
+    @testset "testing freeable" begin
+        Pkg.add("Example")
+        io = IOBuffer()
+        f = PkgDev.freeable(io)
+        @test !(any(f .== "Example") || contains(takebuf_string(io), "Example"))
+        Pkg.checkout("Example")
+        f = PkgDev.freeable(io)
+        @test any(f .== "Example") || contains(takebuf_string(io), "Example")
+    end
 end
 
 @testset "Testing package utils" begin
     @test PkgDev.getrepohttpurl("https://github.com/JuliaLang/PkgDev.jl.git") == "https://github.com/JuliaLang/PkgDev.jl"
     @test PkgDev.getrepohttpurl("git://github.com/JuliaLang/PkgDev.jl.git")  == "https://github.com/JuliaLang/PkgDev.jl"
 end
-

@@ -8,6 +8,8 @@ using Base.Pkg.Types
 import ..PkgDev
 import ..PkgDev.GitHub
 using ..PkgDev: getrepohttpurl
+using Compat
+import Compat.String
 
 function pull_request(dir::AbstractString; commit::AbstractString="", url::AbstractString="", branch::AbstractString="")
     with(GitRepo, dir) do repo
@@ -46,7 +48,7 @@ function submit(pkg::AbstractString, commit::AbstractString="")
 end
 
 function publish(branch::AbstractString, prbranch::AbstractString="")
-    tags = Dict{ByteString,Vector{ASCIIString}}()
+    tags = Dict{String,Vector{String}}()
     metapath = Pkg.dir("METADATA")
     with(GitRepo, metapath) do repo
         LibGit2.branch(repo) == branch ||
@@ -70,7 +72,7 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
                 tag_name = "v$ver"
                 tag_commit = LibGit2.revparseid(pkg_repo, "$(tag_name)^{commit}")
                 LibGit2.iszero(tag_commit) || string(tag_commit) == sha1 || return false
-                haskey(tags,pkg) || (tags[pkg] = ASCIIString[])
+                haskey(tags,pkg) || (tags[pkg] = String[])
                 push!(tags[pkg], tag_name)
                 return true
             end || throw(PkgError("$pkg v$ver is incorrectly tagged – $sha1 expected"))
@@ -82,8 +84,8 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
 
     for pkg in sort!(collect(keys(tags)))
         with(GitRepo, PkgDev.dir(pkg)) do pkg_repo
-            forced = ASCIIString[]
-            unforced = ASCIIString[]
+            forced = String[]
+            unforced = String[]
             for tag in tags[pkg]
                 ver = convert(VersionNumber,tag)
                 push!(isrewritable(ver) ? forced : unforced, tag)
@@ -267,7 +269,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
     return
 end
 
-function check_metadata(pkgs::Set{ByteString} = Set{ByteString}())
+function check_metadata(pkgs::Set{String} = Set{String}())
     avail = Pkg.cd(Read.available)
     deps, conflicts = Query.dependencies(avail)
 
@@ -284,6 +286,41 @@ function check_metadata(pkgs::Set{ByteString} = Set{ByteString}())
         throw(PkgError(msg))
     end
     return
+end
+
+function freeable(io::IO = STDOUT)
+    function latest_tag(pkgname)
+        avail = Read.available(pkgname)
+        k = sort(collect(keys(avail)))
+        isempty(k) ? Nullable{keytype(avail)}() : Nullable(avail[k[end]])
+    end
+    freelist = Any[]
+    firstprint = true
+    cd(Pkg.dir()) do
+        for (pkg, status) in sort!(collect(Read.installed()), by=first)
+            ver, fix = status
+            if fix
+                LibGit2.with(GitRepo(pkg)) do repo
+                    head = string(LibGit2.head_oid(repo))
+                    tag = latest_tag(pkg)
+                    isnull(tag) && return
+                    taggedsha = get(tag).sha1
+                    if head != taggedsha
+                        vrs = LibGit2.revcount(repo, taggedsha, head)
+                        n = vrs[2] - vrs[1]
+                        if firstprint
+                            println(io, "Packages with a gap between HEAD and the most recent tag:")
+                            firstprint = false
+                        end
+                        println(io, pkg, ": ", n)
+                    else
+                        push!(freelist, pkg)
+                    end
+                end
+            end
+        end
+    end
+    freelist
 end
 
 end

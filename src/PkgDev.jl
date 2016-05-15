@@ -1,6 +1,9 @@
+__precompile__()
+
 module PkgDev
 
 using Compat
+import Compat.String
 
 export Entry, Generate, GitHub
 
@@ -111,6 +114,22 @@ function config(force::Bool=false)
     lowercase(LibGit2.prompt("Do you want to change this configuration?", default="N")) == "y" && config(true)
     return
 end
+
+"""
+    freeable([io::IO=STDOUT])
+
+Returns a list of packages which are good candidates for
+`Pkg.free`. These are packages for which you are not tracking the
+tagged release, but for which a tagged release is equivalent to the
+current version. You can use `Pkg.free(PkgDev.freeable())` to
+automatically free all such packages.
+
+This also prints (to `io`, defaulting to standard output) a list of
+packages that are ahead of a tagged release, and prints the number of
+commits that separate them. It can help discover packages that may be
+due for tagging.
+"""
+freeable(args...) = cd(Entry.freeable, args...)
 
 function __init__()
     # Check if git configuration exists
