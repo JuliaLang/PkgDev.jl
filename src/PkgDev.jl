@@ -18,7 +18,7 @@ const cd = Pkg.Dir.cd
 """
     dir(pkg, [paths...])
 
-Returns package `pkg` directory location through search. Additional  `paths` are appended.
+Return package `pkg` directory location through search. Additional `paths` are appended.
 """
 function dir(pkg::AbstractString)
     pkgsrc = Base.find_in_path(bytestring(pkg), Pkg.dir())
