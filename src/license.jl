@@ -3,10 +3,10 @@ const LICENSES = Dict(
     "BSD" => "Simplified \"2-clause\" BSD License",
     "ASL" => "Apache License, Version 2.0",
     "MPL" => "Mozilla Public License, Version 2.0",
-    "GPL2" => "GNU Public License, Version 2.0",
-    "GPL3" => "GNU Public License, Version 3.0",
-    "LGPL2" => "Lesser GNU Public License, Version 2.1",
-    "LGPL3" => "Lesser GNU Public License, Version 3.0"
+    "GPL-2.0+" => "GNU Public License, Version 2.0+",
+    "GPL-3.0+" => "GNU Public License, Version 3.0+",
+    "LGPL-2.1+" => "Lesser GNU Public License, Version 2.1+",
+    "LGPL-3.0+" => "Lesser GNU Public License, Version 3.0+"
 )
 
 
