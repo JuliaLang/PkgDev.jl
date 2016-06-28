@@ -18,7 +18,7 @@ const cd = Pkg.Dir.cd
 """
     dir(pkg, [paths...])
 
-Returns package `pkg` directory location through search. Additional `paths` are appended.
+Returns package `pkg` directory location through search. Additional  `paths` are appended.
 """
 function dir(pkg::AbstractString)
     pkgsrc = Base.find_in_path(bytestring(pkg), Pkg.dir())
@@ -30,7 +30,8 @@ dir(pkg::AbstractString, args...) = normpath(dir(pkg),args...)
 """
     register(pkg, [url])
 
-Register `pkg` at the git URL `url`, defaulting to the configured origin URL of the git repo `Pkg.dir(pkg)`.
+Register `pkg` at the git URL `url`, defaulting to the configured  origin URL of the git
+repo `Pkg.dir(pkg)`.
 """
 register(pkg::AbstractString) = Entry.register(pkg)
 register(pkg::AbstractString, url::AbstractString) = Entry.register(pkg,url)
@@ -38,7 +39,10 @@ register(pkg::AbstractString, url::AbstractString) = Entry.register(pkg,url)
 """
     tag(pkg, [ver, [commit]])
 
-Tag `commit` as version `ver` of package `pkg` and create a version entry in `METADATA`. If not provided, `commit` defaults to the current commit of the `pkg` repo. If `ver` is one of the symbols `:patch`, `:minor`, `:major` the next patch, minor or major version is used. If `ver` is not provided, it defaults to `:patch`.
+Tag `commit` as version `ver` of package `pkg` and create a version  entry in `METADATA`. If
+not provided, `commit` defaults to the current  commit of the `pkg` repo. If `ver` is one of
+the symbols `:patch`,  `:minor`, `:major` the next patch, minor or major version is used. If
+`ver` is not provided, it defaults to `:patch`.
 """
 tag(pkg::AbstractString, sym::Symbol=:patch) = cd(Entry.tag,pkg,sym)
 tag(pkg::AbstractString, sym::Symbol, commit::AbstractString) = cd(Entry.tag,pkg,sym,false,commit)
@@ -53,17 +57,30 @@ submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,pkg,commit
 """
     publish()
 
-For each new package version tagged in `METADATA` not already published, make sure that the tagged package commits have been pushed to the repo at the registered URL for the package and if they all have, open a pull request to `METADATA`.
+For each new package version tagged in `METADATA` not already  published, make sure that the
+tagged package commits have been pushed  to the repo at the registered URL for the package
+and if they all  have, open a pull request to `METADATA`.
 
-A branch in user's remote fork of `METADATA` repository will be created that can be used to create pull request to `METADATA` package registry.
-Optionally, function accepts a name for a pull request branch. If it isn't provided name will be automatically generated.
+A branch in user's remote fork of `METADATA` repository will be  created that can be used to
+create pull request to `METADATA` package  registry.
+
+Optionally, function accepts a name for a pull request branch. If it  isn't provided name
+will be automatically generated.
 """
 publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), prbranch)
 
 doc"""
     generate(pkg,license)
 
-Generate a new package named `pkg` with one of these license keys: `"MIT"`, `"BSD"`, `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`, `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to make a package with a different license, you can edit it afterwards. Generate creates a git repo at `Pkg.dir(pkg)` for the package and inside it `LICENSE.md`, `README.md`, `REQUIRE`, and the julia entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using Coveralls or Codecov are created by default, but each can be disabled individually by setting `travis`, `appveyor` or `coverage` to `false`.
+Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"BSD"`,
+`"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`,  `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to
+make a package with a  different license, you can edit it afterwards.
+
+Generate creates a git repo at `Pkg.dir(pkg)` for the package and  inside it `LICENSE.md`,
+`README.md`, `REQUIRE`, and the julia  entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
+configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using
+Coveralls or Codecov are created by default, but each can be disabled  individually by
+setting `travis`, `appveyor` or `coverage` to `false`.
 """
 generate(pkg::AbstractString, license::AbstractString;
          force::Bool=false, authors::Union{AbstractString,Array} = [],
@@ -74,9 +91,11 @@ generate(pkg::AbstractString, license::AbstractString;
 
 """
     config()
+
 Interactive configuration of the development environment.
 
-PDK operations require `git` minimum configuration that keeps user signature (user.name & user.email).
+PDK operations require `git` minimum configuration that keeps user  signature (user.name &
+user.email).
 """
 function config(force::Bool=false)
     # setup global git configuration
@@ -118,16 +137,14 @@ end
 """
     freeable([io::IO=STDOUT])
 
-Returns a list of packages which are good candidates for
-`Pkg.free`. These are packages for which you are not tracking the
-tagged release, but for which a tagged release is equivalent to the
-current version. You can use `Pkg.free(PkgDev.freeable())` to
-automatically free all such packages.
+Return a list of packages which are good candidates for `Pkg.free`. These are packages for
+which you are not tracking the tagged release, but for which a tagged release is equivalent
+to the current version. You can use `Pkg.free(PkgDev.freeable())` to automatically free all
+such packages.
 
-This also prints (to `io`, defaulting to standard output) a list of
-packages that are ahead of a tagged release, and prints the number of
-commits that separate them. It can help discover packages that may be
-due for tagging.
+This also prints (to `io`, defaulting to standard output) a list of packages that are ahead
+of a tagged release, and prints the number of commits that separate them. It can help
+discover packages that may be due for tagging.
 """
 freeable(args...) = cd(Entry.freeable, args...)
 
