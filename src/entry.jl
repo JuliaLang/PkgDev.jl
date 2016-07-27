@@ -147,10 +147,10 @@ function register(pkg::AbstractString, url::AbstractString)
         versions = with(GitRepo, pkgdir) do pkg_repo
             tags = filter(t->startswith(t,"v"), LibGit2.tag_list(pkg_repo))
             filter!(tag->ismatch(Base.VERSION_REGEX,tag), tags)
-            [
+            Dict(
                 convert(VersionNumber,tag) => string(LibGit2.revparseid(pkg_repo, "$tag^{commit}"))
                 for tag in tags
-            ]
+            )
         end
         # Register package url in METADATA
         cd(metapath) do
