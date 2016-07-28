@@ -94,14 +94,14 @@ generate(pkg::AbstractString, license::AbstractString;
 
 Interactive configuration of the development environment.
 
-PDK operations require `git` minimum configuration that keeps user  signature (user.name &
-user.email).
+PkgDev.jl operations require `git` minimum configuration that keeps user signature
+(user.name & user.email).
 """
 function config(force::Bool=false)
     # setup global git configuration
     cfg = LibGit2.GitConfig(LibGit2.Consts.CONFIG_LEVEL_GLOBAL)
     try
-        println("Julia PDK configuration:")
+        println("PkgDev.jl configuration:")
 
         username = LibGit2.get(cfg, "user.name", "")
         if isempty(username) || force
@@ -154,7 +154,7 @@ function __init__()
     try
         username = LibGit2.get(cfg, "user.name", "")
         if isempty(username)
-            warn("Julia PDK is not configured. Please, run `PkgDev.config()` before performing any operations.")
+            warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` before performing any operations.")
         end
     finally
         finalize(cfg)
