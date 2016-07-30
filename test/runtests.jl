@@ -160,9 +160,9 @@ end"""
     end
 
     @testset "testing package registration" begin
-        PkgDev.generate("GreatNewPackage", "MIT")
+        PkgDev.generate("GreatNewPackage", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
         PkgDev.register("GreatNewPackage")
-        @test isdir(joinpath(pkgdir, "METADATA", "GreatNewPackage"))
+        @test !isempty(readstring(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url")))
     end
 end
 
