@@ -162,10 +162,11 @@ end"""
     =#
 
     @testset "testing package registration" begin
-        if haskey(ENV, "CI")
+        if haskey(ENV, "CI") && lowercase(ENV["CI"]) == "true"
             info("setting git global configuration")
             run(`git config --global user.name "Julia Test"`)
             run(`git config --global user.email test@julialang.org`)
+            run(`git config --global github.user JuliaTest`)
         end
         PkgDev.generate("GreatNewPackage", "MIT")
         PkgDev.register("GreatNewPackage")
