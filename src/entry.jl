@@ -114,7 +114,7 @@ function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumb
         LibGit2.cat(pkg_repo, LibGit2.GitBlob, "$commit:REQUIRE")
     end
     reqs = content !== nothing ? Reqs.read(split(content, '\n', keep=false)) : Reqs.Line[]
-    cd("METADATA") do
+    cd(Pkg.dir("METADATA")) do
         d = joinpath(pkg,"versions",string(ver))
         mkpath(d)
         sha1file = joinpath(d,"sha1")
