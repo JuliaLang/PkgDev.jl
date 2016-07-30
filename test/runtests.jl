@@ -162,11 +162,12 @@ end"""
     =#
 
     @testset "testing package registration" begin
-        PkgDev.generate("GreatNewPackage",
-                        "MIT",
-                        config=Dict("user.name"=>"Julia Test",
-                                    "user.email"=>"test@julialang.org",
-                                    "remote.origin.url" => "https://github.com/JuliaLang/GreatNewPackage.jl.git"))
+        if get(ENV, "CI", false)
+            info("setting git global configuration")
+            run(`git config --global user.name "Julia Test"`)
+            run(`git config --global user.email test@julialang.org`)
+        end
+        PkgDev.generate("GreatNewPackage", "MIT")
         PkgDev.register("GreatNewPackage")
         @test !isempty(readstring(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url")))
     end
