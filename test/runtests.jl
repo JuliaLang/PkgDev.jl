@@ -158,6 +158,12 @@ end"""
         f = PkgDev.freeable(io)
         @test any(f .== "Example") || contains(takebuf_string(io), "Example")
     end
+
+    @testset "testing package registration" begin
+        PkgDev.generate("GreatNewPackage", "MIT")
+        PkgDev.register("GreatNewPackage")
+        @test isdir(joinpath(pkgdir, "METADATA", "GreatNewPackage"))
+    end
 end
 
 @testset "Testing package utils" begin
