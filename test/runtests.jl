@@ -162,7 +162,7 @@ end"""
     =#
 
     @testset "testing package registration" begin
-        if get(ENV, "CI", false)
+        if haskey(ENV, "CI")
             info("setting git global configuration")
             run(`git config --global user.name "Julia Test"`)
             run(`git config --global user.email test@julialang.org`)
