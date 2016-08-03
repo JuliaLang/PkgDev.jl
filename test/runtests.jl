@@ -158,6 +158,18 @@ end"""
         f = PkgDev.freeable(io)
         @test any(f .== "Example") || contains(takebuf_string(io), "Example")
     end
+
+    @testset "testing package registration" begin
+        if haskey(ENV, "CI") && lowercase(ENV["CI"]) == "true"
+            info("setting git global configuration")
+            run(`git config --global user.name "Julia Test"`)
+            run(`git config --global user.email test@julialang.org`)
+            run(`git config --global github.user JuliaTest`)
+        end
+        PkgDev.generate("GreatNewPackage", "MIT")
+        PkgDev.register("GreatNewPackage")
+        @test !isempty(readstring(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url")))
+    end
 end
 
 @testset "Testing package utils" begin
