@@ -21,6 +21,8 @@ You are strongly encouraged to update the version numbers in accordance with the
 * Use `tag(pkg, :patch)` when you make bug fixes and other improvements that *don't change the API* (i.e. user code is unchanged).
 The key question is not how "small" the change is, but how it affects the API and user code.  (Don't be reluctant to bump the minor version when you add new features to the API, no matter how trivial — version numbers are cheap!)
 
+If you drop support for an older version of Julia, you should make at least a minor version bump even if there were no API changes.
+
 ### publish()
 For each new package version tagged in `METADATA` not already published, make sure that the tagged package commits have been pushed to the repository at the registered URL for the package and if they all have, open a pull request to `METADATA`.
 
