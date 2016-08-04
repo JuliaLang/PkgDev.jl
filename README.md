@@ -15,6 +15,12 @@ Register `pkg` at the git URL `url`, defaulting to the configured origin URL of 
 ### tag(pkg, [ver, [commit]])
 Tag `commit` as version `ver` of package `pkg` and create a version entry in `METADATA`. If not provided, `commit` defaults to the current commit of the `pkg` repository. If `ver` is one of the symbols `:patch`, `:minor`, `:major` the next patch, minor or major version is used. If `ver` is not provided, it defaults to `:patch`.
 
+You are strongly encouraged to update the version numbers in accordance with the [semver standard](http://semver.org/):
+* Use `tag(pkg, :major)` when you make *backwards-incompatible* API changes (i.e. changes that will break existing user code).
+* Use `tag(pkg, :minor)` when you *add functionality* in a backwards-compatible way (i.e. existing user code will still work, but code using the *new* functionality will not work with *older* versions of your package).
+* Use `tag(pkg, :patch)` when you make bug fixes and other improvements that *don't change the API* (i.e. user code is unchanged).
+The key question is not how "small" the change is, but how it affects the API and user code.  (Don't be reluctant to bump the minor version when you add new features to the API, no matter how trivial — version numbers are cheap!)
+
 ### publish()
 For each new package version tagged in `METADATA` not already published, make sure that the tagged package commits have been pushed to the repository at the registered URL for the package and if they all have, open a pull request to `METADATA`.
 
