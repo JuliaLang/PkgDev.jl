@@ -35,7 +35,8 @@ function pull_request(dir::AbstractString; commit::AbstractString="", url::Abstr
         fork = response["clone_url"]
         info("Pushing changes as branch $branch")
         refspecs = ["HEAD:refs/heads/$branch"]  # workaround for $commit:refs/heads/$branch
-        LibGit2.push(repo, remoteurl=fork, refspecs=refspecs, force=force_branch, payload=GitHub.credentials())
+        fork, payload = push_url_and_credentials(fork)
+        LibGit2.push(repo, remoteurl=fork, refspecs=refspecs, force=force_branch, payload=payload)
         pr_url = "$(response["html_url"])/compare/$branch"
         info("To create a pull-request, open:\n\n  $pr_url\n")
     end
@@ -45,6 +46,16 @@ function submit(pkg::AbstractString, commit::AbstractString="")
     urlpath = Pkg.dir("METADATA",pkg,"url")
     url = ispath(urlpath) ? readchomp(urlpath) : ""
     pull_request(PkgDev.dir(pkg), commit=commit, url=url)
+end
+
+function push_url_and_credentials(url)
+    payload = Nullable{LibGit2.AbstractCredentials}()
+    m = match(LibGit2.GITHUB_REGEX,url)
+    if m !== nothing
+        url = "https://github.com/$(m.captures[1]).git"
+        payload = GitHub.credentials()
+    end
+    url, payload
 end
 
 function publish(branch::AbstractString, prbranch::AbstractString="")
@@ -90,17 +101,19 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
                 ver = convert(VersionNumber,tag)
                 push!(isrewritable(ver) ? forced : unforced, tag)
             end
+            remoteurl, payload = push_url_and_credentials(
+                LibGit2.url(LibGit2.get(LibGit2.GitRemote, pkg_repo, "origin")))
             if !isempty(forced)
                 info("Pushing $pkg temporary tags: ", join(forced,", "))
-                LibGit2.push(pkg_repo, remote="origin", force=true,
+                LibGit2.push(pkg_repo, remote="origin", remoteurl=remoteurl, force=true,
                              refspecs=["refs/tags/$tag:refs/tags/$tag" for tag in forced],
-                             payload=GitHub.credentials())
+                             payload=payload)
             end
             if !isempty(unforced)
                 info("Pushing $pkg permanent tags: ", join(unforced,", "))
-                LibGit2.push(pkg_repo, remote="origin",
+                LibGit2.push(pkg_repo, remote="origin", remoteurl=remoteurl,
                              refspecs=["refs/tags/$tag:refs/tags/$tag" for tag in unforced],
-                             payload=GitHub.credentials())
+                             payload=payload)
             end
         end
     end
