@@ -3,9 +3,12 @@ os:
   - linux
   - osx
 julia:
+  - 0.5
   - nightly
 notifications:
   email: false
-script:
- - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
- - julia -e 'Pkg.clone(pwd()); Pkg.build("PkgDev"); Pkg.test("PkgDev"; coverage=true)'
+git:
+  depth: 999999
+#script: # use the default script which is equivalent to the following
+# - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+# - julia -e 'Pkg.clone(pwd()); Pkg.build("PkgDev"); Pkg.test("PkgDev"; coverage=true)'
