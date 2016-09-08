@@ -124,8 +124,8 @@ function fork(owner::AbstractString, repo::AbstractString)
 end
 
 function credentials()
-    username = try user() catch "" end
-    password = readtoken()
+    username = user()
+    password = token(username)
     return Nullable(LibGit2.UserPasswordCredentials(username, password))
 end
 
