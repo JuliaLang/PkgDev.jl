@@ -83,6 +83,7 @@ Creating a personal access token for Julia Package Manager on GitHub.
 
     mkpath(dirname(tokfile))
     open(io->println(io,tok),tokfile,"w")
+    chmod(tokfile, 0o600)
     return tok
 end
 
