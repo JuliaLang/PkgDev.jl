@@ -68,6 +68,7 @@ function package(
 
             travis && push!(files, Generate.travis(pkg_path,force=force,coverage=coverage))
             appveyor && push!(files, Generate.appveyor(pkg_path,force=force))
+            coverage && push!(files, Generate.codecov(pkg_path, force=force))
 
             msg = """
             $pkg.jl $(isnew ? "generated" : "regenerated") files.
@@ -289,6 +290,14 @@ function appveyor(pkg::AbstractString; force::Bool=false)
 
         test_script:
           - C:\\projects\\julia\\bin\\julia -e "Pkg.test(\\"$pkg_name\\")"
+        """)
+    end
+end
+
+function codecov(pkg::AbstractString; force::Bool=false)
+    genfile(pkg, ".codecov.yml", force) do io
+        print(io, """
+        comment: false
         """)
     end
 end

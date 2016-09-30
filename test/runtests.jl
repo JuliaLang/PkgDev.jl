@@ -113,6 +113,11 @@ end"""
             println(f,"@test f3(5) == 15")
         end
 
+        let codecov_yml = Pkg.dir("PackageWithCodeCoverage", ".codecov.yml")
+            @test isfile(codecov_yml)
+            @test readchomp(codecov_yml) == "comment: false"
+        end
+
         Pkg.test("PackageWithCodeCoverage")
         covdir = Pkg.dir("PackageWithCodeCoverage","src")
         covfiles = filter!(x -> contains(x, "PackageWithCodeCoverage.jl") && contains(x,".cov"), readdir(covdir))
