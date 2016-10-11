@@ -132,6 +132,12 @@ end"""
         end
     end
 
+    if haskey(ENV, "CI") && lowercase(ENV["CI"]) == "true"
+        info("setting git global configuration")
+        run(`git config --global user.name "Julia Test"`)
+        run(`git config --global user.email test@julialang.org`)
+        run(`git config --global github.user JuliaTest`)
+    end
 
     @testset "testing package tags" begin
         PkgDev.generate("PackageWithTags", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
@@ -170,12 +176,6 @@ end"""
     end
 
     @testset "testing package registration" begin
-        if haskey(ENV, "CI") && lowercase(ENV["CI"]) == "true"
-            info("setting git global configuration")
-            run(`git config --global user.name "Julia Test"`)
-            run(`git config --global user.email test@julialang.org`)
-            run(`git config --global github.user JuliaTest`)
-        end
         PkgDev.generate("GreatNewPackage", "MIT")
         PkgDev.register("GreatNewPackage")
         @test !isempty(readstring(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url")))
