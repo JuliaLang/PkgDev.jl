@@ -128,9 +128,10 @@ function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumb
     end
     reqs = content !== nothing ? Reqs.read(split(content, '\n', keep=false)) : Reqs.Line[]
     cd(Pkg.dir("METADATA")) do
-        d = joinpath(pkg,"versions",string(ver))
+        # work around julia#18724 and PkgDev#28
+        d = join([pkg, "versions", string(ver)], '/')
         mkpath(d)
-        sha1file = joinpath(d,"sha1")
+        sha1file = join([d, "sha1"], '/')
         if !force && ispath(sha1file)
             current = readchomp(sha1file)
             current == commit ||
@@ -138,7 +139,7 @@ function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumb
         end
         open(io->println(io,commit), sha1file, "w")
         LibGit2.add!(repo, sha1file)
-        reqsfile = joinpath(d,"requires")
+        reqsfile = join([d, "requires"], '/')
         if isempty(reqs)
             ispath(reqsfile) && LibGit2.remove!(repo, reqsfile)
         else
@@ -169,7 +170,8 @@ function register(pkg::AbstractString, url::AbstractString)
         cd(metapath) do
             info("Registering $pkg at $url")
             mkdir(pkg)
-            path = joinpath(pkg,"url")
+            # work around julia#18724 and PkgDev#28
+            path = join([pkg, "url"], '/')
             open(io->println(io,url), path, "w")
             LibGit2.add!(repo, path)
         end
