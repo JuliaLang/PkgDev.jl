@@ -90,6 +90,10 @@ end
 function req(resource::AbstractString, data, opts::Cmd=``)
     url = "https://api.github.com/$resource"
     status, header, content = curl(url,data,`-u $(token()):x-oauth-basic $opts`)
+    if (status == 302) || (status == 307) # Temporary redirect
+        url = chomp(header["Location"])
+        status, header, content = curl(url,data,`-u $(token()):x-oauth-basic $opts`)
+    end
     response = JSON.parse(content)
     status, response
 end
