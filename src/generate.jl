@@ -180,6 +180,10 @@ function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
         isempty(user) && return
         url = "https://travis-ci.org/$user/$pkg_name.jl"
         println(io, "\n[![Build Status]($url.svg?branch=master)]($url)")
+        appveyor_pkg_name = replace(pkg_name, ".", "-")
+        appveyor_badge = "https://ci.appveyor.com/api/projects/status/github/$user/$pkg_name.jl?svg=true&branch=master"
+        appveyor_link = "https://ci.appveyor.com/project/$user/$appveyor_pkg_name/branch/master"
+        println(io, "\n[![Appveyor Status]($appveyor_badge.svg?branch=master)]($appveyor_link)")
         if coverage
             coveralls_badge = "https://coveralls.io/repos/$user/$pkg_name.jl/badge.svg?branch=master&service=github"
             coveralls_url = "https://coveralls.io/github/$user/$pkg_name.jl?branch=master"
