@@ -72,22 +72,52 @@ publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), pr
 doc"""
     generate(pkg,license)
 
-Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"BSD"`,
-`"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`,  `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to
-make a package with a  different license, you can edit it afterwards.
+Generate a new package named `pkg` with one of these license keys:
 
-Generate creates a git repo at `Pkg.dir(pkg)` for the package and  inside it `LICENSE.md`,
-`README.md`, `REQUIRE`, and the julia  entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
-configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using
-Coveralls or Codecov are created by default, but each can be disabled  individually by
-setting `travis`, `appveyor` or `coverage` to `false`.
+* `"MIT"`
+* `"BSD"`
+* `"ASL"`
+* `"MPL"`
+* `"GPL-2.0+"`
+* `"GPL-3.0+"`
+* `"LGPL-2.1+"`
+* `"LGPL-3.0+"`
+
+If you want to make a package with a  different license, you can edit it
+afterwards.
+
+Generate creates a git repo at `Pkg.dir(pkg)` for the package and inside it
+
+* `LICENSE.md`
+* `README.md`
+* `REQUIRE`
+* the julia  entrypoint `$pkg/src/$pkg.jl`
+
+and creates documentation infrastrucure (disable with `document = false`)
+
+* generic documentation markdown (`docs/make.jl`)
+* doctesting code (`test/runtests.jl`)
+* a deployment script (`docs/src/index.md`)
+
+and creates configuration files for
+
+* Travis (`.travis.yml`) (disable with `travis = false`)
+* AppVeyor CI (`appveyor.yml`) (disable with `appveyor = false`)
+
+and enables sending code coverage statistics (`disable with `coverage = false`)
+to
+
+* Coveralls
+* Codecov
 """
 generate(pkg::AbstractString, license::AbstractString;
          force::Bool=false, authors::Union{AbstractString,Array} = [],
          config::Dict=Dict(), path::AbstractString = Pkg.Dir.path(),
-         travis::Bool = true, appveyor::Bool = true, coverage::Bool = true) =
-    Generate.package(pkg, license, force=force, authors=authors, config=config, path=path,
-                     travis=travis, appveyor=appveyor, coverage=coverage)
+         travis::Bool = true, appveyor::Bool = true, coverage::Bool = true,
+         document::Bool = true) =
+    Generate.package(pkg, license, force=force, authors=authors, config=config,
+                     path=path, travis=travis, appveyor=appveyor, coverage=coverage,
+                     document=document)
 
 """
     config()
