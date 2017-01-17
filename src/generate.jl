@@ -215,7 +215,7 @@ function tests(pkg::AbstractString; force::Bool=false,document=true,
         using Base.Test
 
         # write your own tests here
-        @test 1 == 2
+        # @test 1 == 2
         """)
 
         if document
