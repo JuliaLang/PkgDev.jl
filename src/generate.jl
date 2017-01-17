@@ -195,8 +195,8 @@ function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
 
             ## Documentation
 
-            - [**STABLE**][$docs_stable_url] &mdash; **most recently tagged version of the documentation.**
-            - [**LATEST**][$docs_latest_url] &mdash; *in-development version of the documentation.*
+            - [**STABLE**]($docs_stable_url) &mdash; **most recently tagged version of the documentation.**
+            - [**LATEST**]($docs_latest_url) &mdash; *in-development version of the documentation.*
             """)
         end
     end
@@ -253,7 +253,7 @@ function require(pkg::AbstractString; force::Bool=false)
 end
 
 function tests_require(pkg::AbstractString; force::Bool=false)
-    genfile(pkg,"tests/REQUIRE",force) do io
+    genfile(pkg,"test/REQUIRE",force) do io
         print(io, """
         Documenter
         """)
