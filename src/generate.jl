@@ -65,8 +65,7 @@ function package(
                      Generate.readme(pkg_path,user,force=force,
                          coverage=coverage,document=document),
                      Generate.entrypoint(pkg_path,force=force),
-                     Generate.tests(pkg_path,user,force=force,
-                         document=document),
+                     Generate.tests(pkg_path,force=force,document=document),
                      Generate.require(pkg_path,force=force,document=document),
                      Generate.gitignore(pkg_path,force=force,document=document)]
 
@@ -193,7 +192,7 @@ function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
             docs_stable_url = "https://$user.github.io/$pkg_name.jl/stable"
             docs_latest_url = "https://$user.github.io/$pkg_name.jl/latest"
             print(io, """
-            
+
             ## Documentation
 
             - [**STABLE**][$docs_stable_url] &mdash; **most recently tagged version of the documentation.**
@@ -203,8 +202,8 @@ function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
     end
 end
 
-function tests(pkg::AbstractString,user::AbstractString=""; force::Bool=false,
-               document=true,copyright_name = "")
+function tests(pkg::AbstractString; force::Bool=false,document=true,
+               copyright_name = "")
     pkg_name = basename(pkg)
     genfile(pkg,"test/runtests.jl",force) do io
         print(io, """
@@ -215,7 +214,7 @@ function tests(pkg::AbstractString,user::AbstractString=""; force::Bool=false,
         @test 1 == 2
         """)
 
-        if document && !isempty(user)
+        if document
             print(io, """
 
             # run doctests
