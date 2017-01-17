@@ -23,7 +23,7 @@ temp_pkg_dir() do pkgdir
     @testset "testing a package with test dependencies causes them to be installed for the duration of the test" begin
         PkgDev.generate("PackageWithTestDependencies", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
         @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
-        @test readstring(Pkg.dir("PackageWithTestDependencies","REQUIRE")) == "julia $(PkgDev.Generate.versionfloor(VERSION))\nDocumenter\n"
+        @test readstring(Pkg.dir("PackageWithTestDependencies","REQUIRE")) == "julia $(PkgDev.Generate.versionfloor(VERSION))\n"
 
         isdir(Pkg.dir("PackageWithTestDependencies","test")) || mkdir(Pkg.dir("PackageWithTestDependencies","test"))
         open(Pkg.dir("PackageWithTestDependencies","test","REQUIRE"),"w") do f
@@ -36,13 +36,11 @@ temp_pkg_dir() do pkgdir
         end
 
         Pkg.resolve()
-        @test [keys(Pkg.installed())...] == ["Documenter","Compat",
-            "PackageWithTestDependencies","DocStringExtensions"]
+        @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
 
         Pkg.test("PackageWithTestDependencies")
 
-        @test [keys(Pkg.installed())...] == ["Documenter","Compat",
-            "PackageWithTestDependencies","DocStringExtensions"]
+        @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
 
         # trying to pin an unregistered package errors
         try

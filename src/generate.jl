@@ -66,7 +66,7 @@ function package(
                          coverage=coverage,document=document),
                      Generate.entrypoint(pkg_path,force=force),
                      Generate.tests(pkg_path,force=force,document=document),
-                     Generate.require(pkg_path,force=force,document=document),
+                     Generate.require(pkg_path,force=force),
                      Generate.gitignore(pkg_path,force=force,document=document)]
 
             travis && push!(files,
@@ -76,8 +76,8 @@ function package(
             coverage && push!(files, Generate.codecov(pkg_path,force=force))
             document && push!(files,
                               Generate.document_make(pkg_path,user,force=force),
-                              Generate.document_index(pkg_path,force=force) )
-
+                              Generate.document_index(pkg_path,force=force),
+                              Generate.tests_require(pkg_path,force=force))
 
             msg = """
             $pkg.jl $(isnew ? "generated" : "regenerated") files.
@@ -244,14 +244,19 @@ function versionfloor(ver::VersionNumber)
     end
 end
 
-function require(pkg::AbstractString; force::Bool=false, document::Bool=true)
+function require(pkg::AbstractString; force::Bool=false)
     genfile(pkg,"REQUIRE",force) do io
         print(io, """
         julia $(versionfloor(VERSION))
         """)
-        if document
-            println(io, "Documenter")
-        end
+    end
+end
+
+function tests_require(pkg::AbstractString; force::Bool=false)
+    genfile(pkg,"tests/REQUIRE",force) do io
+        print(io, """
+        Documenter
+        """)
     end
 end
 
