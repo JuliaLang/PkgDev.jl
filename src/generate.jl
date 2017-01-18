@@ -214,7 +214,7 @@ function tests(pkg::AbstractString; force::Bool=false,document=true,
         using Base.Test
 
         # write your own tests here
-        # @test 1 == 2
+        @test 1 == 2
         """)
 
         if document
@@ -389,8 +389,7 @@ function document_make(pkg::AbstractString,user::AbstractString="";
         # for successful deployment, make sure to
         # - add a gh-pages branch on github
         # - run `import Documenter; Documenter.Travis.genkeys("$pkg_name")` in a *REPL*
-        #       and follow instructions. (Requires several unix tools. For Windows, try
-        #       adding `C:\\Program Files\\Git\\usr\\bin` to your path first
+        #       and follow instructions. For Windows, run from inside git-bash.
         deploydocs(
             repo = "github.com/$user/$pkg_name.jl.git",
             target = "build",
