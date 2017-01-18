@@ -180,10 +180,9 @@ function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
         isempty(user) && return
         url = "https://travis-ci.org/$user/$pkg_name.jl"
         println(io, "\n[![Build Status]($url.svg?branch=master)]($url)")
-        appveyor_pkg_name = replace(pkg_name, ".", "-")
         appveyor_badge = "https://ci.appveyor.com/api/projects/status/github/$user/$pkg_name.jl?svg=true&branch=master"
-        appveyor_link = "https://ci.appveyor.com/project/$user/$appveyor_pkg_name/branch/master"
-        println(io, "\n[![Appveyor Status]($appveyor_badge.svg?branch=master)]($appveyor_link)")
+        appveyor_link = "https://ci.appveyor.com/project/$user/$pkg_name-jl/branch/master"
+        println(io, "\n[![Appveyor Status]($appveyor_badge)]($appveyor_link)")
         if coverage
             coveralls_badge = "https://coveralls.io/repos/$user/$pkg_name.jl/badge.svg?branch=master&service=github"
             coveralls_url = "https://coveralls.io/github/$user/$pkg_name.jl?branch=master"
@@ -221,13 +220,15 @@ function tests(pkg::AbstractString; force::Bool=false,document=true,
         if document
             print(io, """
 
+            import Documenter
+
             # run doctests
-            makedocs(
+            Documenter.makedocs(
                 modules = [$pkg_name],
                 format = :html,
                 sitename = "$pkg_name.jl",
-                pages = Any["Home" => "index.md"]
-                root = joinpath(dirname(dirname(@__FILE__)), "docs")
+                pages = Any["Home" => "index.md"],
+                root = joinpath(dirname(dirname(@__FILE__)), "docs"),
                 strict = true
             )
             """)
@@ -387,8 +388,9 @@ function document_make(pkg::AbstractString,user::AbstractString="";
 
         # for successful deployment, make sure to
         # - add a gh-pages branch on github
-        # - set up SSH deploy keys
-        # see https://juliadocs.github.io/Documenter.jl/latest/man/hosting.html for further instructions
+        # - run `import Documenter; Documenter.Travis.genkeys("$pkg_name")` in a *REPL*
+        #       and follow instructions. (Requires several unix tools. For Windows, try
+        #       adding `C:\\Program Files\\Git\\usr\\bin` to your path first
         deploydocs(
             repo = "github.com/$user/$pkg_name.jl.git",
             target = "build",
