@@ -19,7 +19,25 @@ function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
 end
 
 temp_pkg_dir() do pkgdir
-
+    
+    @testset "generic features" begin
+        PkgDev.generate("PackageGeneric", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org", "github.user"=>"juliatest"))
+        cfg = LibGit2.GitConfig(LibGit2.Consts.CONFIG_LEVEL_GLOBAL)
+        LibGit2.set!(cfg, "github.user", "juliatest")
+        @test [keys(Pkg.installed())...] == ["PackageGeneric"]
+        test_file = "testfile"
+        commit_msg = randstring(10)
+        repo = LibGit2.GitRepo(Pkg.dir("PackageGeneric"))
+        repo_file = open(joinpath(Pkg.dir("PackageGeneric"),"src",test_file), "a")
+        # create commit
+        println(repo_file, commit_msg)
+        flush(repo_file)
+        LibGit2.add!(repo, test_file)
+        test_sig = LibGit2.Signature("Julia Test", "juliatest@test.com", round(time(), 0), 0)
+        commit_oid = LibGit2.commit(repo, commit_msg; author=test_sig, committer=test_sig)
+        @test PkgDev.Generate.git_contributors(repo) == ["Julia Test"]
+        @test PkgDev.GitHub.user() == "juliatest"
+    end
     @testset "testing a package with test dependencies causes them to be installed for the duration of the test" begin
         PkgDev.generate("PackageWithTestDependencies", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
         @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
