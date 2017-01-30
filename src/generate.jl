@@ -38,6 +38,7 @@ function package(
     travis::Bool = true,
     appveyor::Bool = true,
     coverage::Bool = true,
+    document::Bool = true
 )
     pkg_path = joinpath(path,pkg)
     isnew = !ispath(pkg_path)
@@ -59,16 +60,24 @@ function package(
                 authors = isnew ? copyright_name(repo) : git_contributors(repo,5)
             end
 
-            files = [Generate.license(pkg_path,license,years,authors,force=force),
-                     Generate.readme(pkg_path,user,force=force,coverage=coverage),
+            files = [Generate.license(pkg_path,license,years,authors,
+                         force=force),
+                     Generate.readme(pkg_path,user,force=force,
+                         coverage=coverage,document=document),
                      Generate.entrypoint(pkg_path,force=force),
-                     Generate.tests(pkg_path,force=force),
+                     Generate.tests(pkg_path,force=force,document=document),
                      Generate.require(pkg_path,force=force),
-                     Generate.gitignore(pkg_path,force=force) ]
+                     Generate.gitignore(pkg_path,force=force,document=document)]
 
-            travis && push!(files, Generate.travis(pkg_path,force=force,coverage=coverage))
+            travis && push!(files,
+                Generate.travis(pkg_path,force=force,coverage=coverage,
+                    document=document))
             appveyor && push!(files, Generate.appveyor(pkg_path,force=force))
-            coverage && push!(files, Generate.codecov(pkg_path, force=force))
+            coverage && push!(files, Generate.codecov(pkg_path,force=force))
+            document && push!(files,
+                              Generate.document_make(pkg_path,user,force=force),
+                              Generate.document_index(pkg_path,force=force),
+                              Generate.tests_require(pkg_path,force=force))
 
             msg = """
             $pkg.jl $(isnew ? "generated" : "regenerated") files.
@@ -163,13 +172,17 @@ function license(pkg::AbstractString,
     file
 end
 
-function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false, coverage::Bool=true)
+function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
+                coverage::Bool=true, document::Bool=true)
     pkg_name = basename(pkg)
     genfile(pkg,"README.md",force) do io
         println(io, "# $pkg_name")
         isempty(user) && return
         url = "https://travis-ci.org/$user/$pkg_name.jl"
         println(io, "\n[![Build Status]($url.svg?branch=master)]($url)")
+        appveyor_badge = "https://ci.appveyor.com/api/projects/status/github/$user/$pkg_name.jl?svg=true&branch=master"
+        appveyor_link = "https://ci.appveyor.com/project/$user/$pkg_name-jl/branch/master"
+        println(io, "\n[![Appveyor Status]($appveyor_badge)]($appveyor_link)")
         if coverage
             coveralls_badge = "https://coveralls.io/repos/$user/$pkg_name.jl/badge.svg?branch=master&service=github"
             coveralls_url = "https://coveralls.io/github/$user/$pkg_name.jl?branch=master"
@@ -178,10 +191,22 @@ function readme(pkg::AbstractString, user::AbstractString=""; force::Bool=false,
             codecov_url = "http://codecov.io/github/$user/$pkg_name.jl?branch=master"
             println(io, "\n[![codecov.io]($codecov_badge)]($codecov_url)")
         end
+        if document
+            docs_stable_url = "https://$user.github.io/$pkg_name.jl/stable"
+            docs_latest_url = "https://$user.github.io/$pkg_name.jl/latest"
+            print(io, """
+
+            ## Documentation
+
+            - [**STABLE**]($docs_stable_url) &mdash; **most recently tagged version of the documentation.**
+            - [**LATEST**]($docs_latest_url) &mdash; *in-development version of the documentation.*
+            """)
+        end
     end
 end
 
-function tests(pkg::AbstractString; force::Bool=false)
+function tests(pkg::AbstractString; force::Bool=false,document=true,
+               copyright_name = "")
     pkg_name = basename(pkg)
     genfile(pkg,"test/runtests.jl",force) do io
         print(io, """
@@ -191,6 +216,23 @@ function tests(pkg::AbstractString; force::Bool=false)
         # write your own tests here
         @test 1 == 2
         """)
+
+        if document
+            print(io, """
+
+            import Documenter
+
+            # run doctests
+            Documenter.makedocs(
+                modules = [$pkg_name],
+                format = :html,
+                sitename = "$pkg_name.jl",
+                pages = Any["Home" => "index.md"],
+                root = joinpath(dirname(dirname(@__FILE__)), "docs"),
+                strict = true
+            )
+            """)
+        end
     end
 end
 
@@ -215,9 +257,25 @@ function require(pkg::AbstractString; force::Bool=false)
     end
 end
 
-function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
+function tests_require(pkg::AbstractString; force::Bool=false)
+    genfile(pkg,"test/REQUIRE",force) do io
+        print(io, """
+        Documenter
+        """)
+    end
+end
+
+maybe_comment(dont_comment::Bool) = if dont_comment
+    ""
+else
+    "#"
+end
+
+function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true,
+                document::Bool=true)
     pkg_name = basename(pkg)
-    c = coverage ? "" : "#"
+    c = maybe_comment(coverage)
+    d = maybe_comment(document)
     genfile(pkg,".travis.yml",force) do io
         print(io, """
         # Documentation: http://docs.travis-ci.com/user/languages/julia/
@@ -239,6 +297,8 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
         $(c)  - julia -e 'cd(Pkg.dir("$pkg_name")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
         $(c)  # push coverage results to Codecov
         $(c)  - julia -e 'cd(Pkg.dir("$pkg_name")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+        $(d)  # build documentation
+        $(d)  - julia -e 'ENV["DOCUMENTER_DEBUG"] = "true"; cd(Pkg.dir("$pkg_name")); Pkg.add("Documenter"); include(joinpath("docs", "make.jl"))'
         """)
     end
 end
@@ -302,12 +362,57 @@ function codecov(pkg::AbstractString; force::Bool=false)
     end
 end
 
-function gitignore(pkg::AbstractString; force::Bool=false)
+function gitignore(pkg::AbstractString; force::Bool=false, document::Bool=true)
     genfile(pkg,".gitignore",force) do io
         print(io, """
         *.jl.cov
         *.jl.*.cov
         *.jl.mem
+        """)
+
+        if document
+            print(io, """
+            docs/build/
+            docs/site/
+            """)
+        end
+    end
+end
+
+function document_make(pkg::AbstractString,user::AbstractString="";
+                       force::Bool=false)
+    pkg_name = basename(pkg)
+    genfile(pkg,"docs/make.jl",force) do io
+        print(io, """
+        using Documenter, $pkg_name
+
+        # for successful deployment, make sure to
+        # - add a gh-pages branch on github
+        # - run `import Documenter; Documenter.Travis.genkeys("$pkg_name")` in a *REPL*
+        #       and follow instructions. For Windows, run from inside git-bash.
+        deploydocs(
+            repo = "github.com/$user/$pkg_name.jl.git",
+            target = "build",
+            deps = nothing,
+            make = nothing
+        )
+        """)
+    end
+end
+
+function document_index(pkg::AbstractString; force::Bool=false)
+    pkg_name = basename(pkg)
+
+    genfile(pkg,"docs/src/index.md",force) do io
+        print(io, """
+        # $pkg_name.jl
+
+        ```@index
+        ```
+
+        ```@autodocs
+        Modules = [$pkg_name]
+        ```
         """)
     end
 end
