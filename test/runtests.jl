@@ -178,10 +178,10 @@ end"""
         Pkg.add("Example")
         io = IOBuffer()
         f = PkgDev.freeable(io)
-        @test !(any(f .== "Example") || contains(takebuf_string(io), "Example"))
+        @test !(any(f .== "Example") || contains(String(take!(io)), "Example"))
         Pkg.checkout("Example")
         f = PkgDev.freeable(io)
-        @test any(f .== "Example") || contains(takebuf_string(io), "Example")
+        @test any(f .== "Example") || contains(String(take!(io)), "Example")
     end
 
     @testset "testing package registration" begin
