@@ -15,12 +15,17 @@ include("generate.jl")
 
 const cd = Pkg.Dir.cd
 
+# remove extension .jl
+const PKGEXT = ".jl"
+splitjl(pkg::AbstractString) = endswith(pkg, PKGEXT) ? pkg[1:end-length(PKGEXT)] : pkg
+
 """
     dir(pkg, [paths...])
 
 Return package `pkg` directory location through search. Additional `paths` are appended.
 """
 function dir(pkg::AbstractString)
+    pkg = splitjl(pkg)
     pkgsrc = Base.find_in_path(pkg, Pkg.dir())
     pkgsrc === nothing && return ""
     abspath(dirname(pkgsrc), "..") |> realpath
@@ -33,8 +38,8 @@ dir(pkg::AbstractString, args...) = normpath(dir(pkg),args...)
 Register `pkg` at the git URL `url`, defaulting to the configured  origin URL of the git
 repo `Pkg.dir(pkg)`.
 """
-register(pkg::AbstractString) = Entry.register(pkg)
-register(pkg::AbstractString, url::AbstractString) = Entry.register(pkg,url)
+register(pkg::AbstractString) = Entry.register(splitjl(pkg))
+register(pkg::AbstractString, url::AbstractString) = Entry.register(splitjl(pkg),url)
 
 """
     tag(pkg, [ver, [commit]])
@@ -44,15 +49,15 @@ not provided, `commit` defaults to the current  commit of the `pkg` repo. If `ve
 the symbols `:patch`,  `:minor`, `:major` the next patch, minor or major version is used. If
 `ver` is not provided, it defaults to `:patch`.
 """
-tag(pkg::AbstractString, sym::Symbol=:patch) = cd(Entry.tag,pkg,sym)
-tag(pkg::AbstractString, sym::Symbol, commit::AbstractString) = cd(Entry.tag,pkg,sym,false,commit)
+tag(pkg::AbstractString, sym::Symbol=:patch) = cd(Entry.tag,splitjl(pkg),sym)
+tag(pkg::AbstractString, sym::Symbol, commit::AbstractString) = cd(Entry.tag,splitjl(pkg),sym,false,commit)
 
-tag(pkg::AbstractString, ver::VersionNumber; force::Bool=false) = cd(Entry.tag,pkg,ver,force)
+tag(pkg::AbstractString, ver::VersionNumber; force::Bool=false) = cd(Entry.tag,splitjl(pkg),ver,force)
 tag(pkg::AbstractString, ver::VersionNumber, commit::AbstractString; force::Bool=false) =
-    cd(Entry.tag,pkg,ver,force,commit)
+    cd(Entry.tag,splitjl(pkg),ver,force,commit)
 
-submit(pkg::AbstractString) = cd(Entry.submit, pkg)
-submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,pkg,commit)
+submit(pkg::AbstractString) = cd(Entry.submit, splitjl(pkg))
+submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,splitjl(pkg),commit)
 
 """
     publish()
@@ -86,7 +91,7 @@ generate(pkg::AbstractString, license::AbstractString;
          force::Bool=false, authors::Union{AbstractString,Array} = [],
          config::Dict=Dict(), path::AbstractString = Pkg.Dir.path(),
          travis::Bool = true, appveyor::Bool = true, coverage::Bool = true) =
-    Generate.package(pkg, license, force=force, authors=authors, config=config, path=path,
+    Generate.package(splitjl(pkg), license, force=force, authors=authors, config=config, path=path,
                      travis=travis, appveyor=appveyor, coverage=coverage)
 
 """
