@@ -52,7 +52,11 @@ temp_pkg_dir() do pkgdir
         end
     end
 
-
+    @testset "generating a package with .jl extension" begin
+        PkgDev.generate("PackageWithExtension.jl", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
+        @show keys(Pkg.installed())
+        @test "PackageWithExtension" in keys(Pkg.installed())
+    end
 
     @testset "testing a package with no runtests.jl errors" begin
         PkgDev.generate("PackageWithNoTests", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
@@ -174,10 +178,10 @@ end"""
         Pkg.add("Example")
         io = IOBuffer()
         f = PkgDev.freeable(io)
-        @test !(any(f .== "Example") || contains(takebuf_string(io), "Example"))
+        @test !(any(f .== "Example") || contains(String(take!(io)), "Example"))
         Pkg.checkout("Example")
         f = PkgDev.freeable(io)
-        @test any(f .== "Example") || contains(takebuf_string(io), "Example")
+        @test any(f .== "Example") || contains(String(take!(io)), "Example")
     end
 
     @testset "testing package registration" begin
