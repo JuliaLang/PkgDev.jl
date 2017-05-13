@@ -218,6 +218,13 @@ end
 function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
     pkg_name = basename(pkg)
     c = coverage ? "" : "#"
+    vf = versionfloor(VERSION)
+    if vf[end] == '-' # don't know what previous release was
+        vf = string(VERSION.major, '.', VERSION.minor)
+        release = "#  - $vf"
+    else
+        release = "  - $vf"
+    end
     genfile(pkg,".travis.yml",force) do io
         print(io, """
         # Documentation: http://docs.travis-ci.com/user/languages/julia/
@@ -226,7 +233,7 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
           - linux
           - osx
         julia:
-          - release
+        $release
           - nightly
         notifications:
           email: false
