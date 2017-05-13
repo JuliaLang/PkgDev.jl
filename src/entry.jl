@@ -230,22 +230,22 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
         urlfile = joinpath(metapath,pkg,"url")
         registered = isfile(urlfile)
 
-        if !force
-            if registered
-                avail = Pkg.cd(Pkg.Read.available, pkg)
-                existing = VersionNumber[keys(avail)...]
-                ancestors = filter(v->LibGit2.is_ancestor_of(avail[v].sha1, commit, repo), existing)
-            else
-                tags = filter(t->startswith(t,"v"), Pkg.LibGit2.tag_list(repo))
-                filter!(tag->ismatch(Base.VERSION_REGEX,tag), tags)
-                existing = VersionNumber[tags...]
-                filter!(tags) do tag
-                    sha1 = string(LibGit2.revparseid(repo, "$tag^{commit}"))
-                    LibGit2.is_ancestor_of(sha1, commit, repo)
-                end
-                ancestors = VersionNumber[tags...]
+        if registered
+            avail = Pkg.cd(Pkg.Read.available, pkg)
+            existing = VersionNumber[keys(avail)...]
+            ancestors = filter(v->LibGit2.is_ancestor_of(avail[v].sha1, commit, repo), existing)
+        else
+            tags = filter(t->startswith(t,"v"), Pkg.LibGit2.tag_list(repo))
+            filter!(tag->ismatch(Base.VERSION_REGEX,tag), tags)
+            existing = VersionNumber[tags...]
+            filter!(tags) do tag
+                sha1 = string(LibGit2.revparseid(repo, "$tag^{commit}"))
+                LibGit2.is_ancestor_of(sha1, commit, repo)
             end
-            sort!(existing)
+            ancestors = VersionNumber[tags...]
+        end
+        sort!(existing)
+        if !force
             if isa(ver,Symbol)
                 prv = isempty(existing) ? v"0" :
                       isempty(ancestors) ? maximum(existing) : maximum(ancestors)
@@ -271,7 +271,16 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
                     info("Committing METADATA for $pkg")
                     # Convert repo url into proper http url
                     repourl = getrepohttpurl(readchomp(urlfile))
-                    LibGit2.commit(repo, "Tag $pkg v$ver [$repourl]")
+                    tagmsg = "Tag $pkg v$ver [$repourl]"
+                    prev_ver_idx = isa(ver, Symbol) ? 0 : findlast(v -> v < ver, existing)
+                    if prev_ver_idx != 0
+                        prev_ver = string(existing[prev_ver_idx])
+                        prev_sha = readchomp(joinpath(metapath,pkg,"versions",prev_ver,"sha1"))
+                        if ismatch(LibGit2.GITHUB_REGEX, repourl)
+                            tagmsg *= "\n\nDiff vs v$prev_ver: $repourl/compare/$prev_sha...$commit"
+                        end
+                    end
+                    LibGit2.commit(repo, tagmsg)
                 else
                     info("No METADATA changes to commit")
                 end
