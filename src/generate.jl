@@ -227,7 +227,7 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
     end
     genfile(pkg,".travis.yml",force) do io
         print(io, """
-        # Documentation: http://docs.travis-ci.com/user/languages/julia/
+        ## Documentation: http://docs.travis-ci.com/user/languages/julia/
         language: julia
         os:
           - linux
@@ -237,9 +237,25 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
           - nightly
         notifications:
           email: false
-        # uncomment the following lines to override the default test script
+        git:
+          depth: 99999999
+
+        ## uncomment the following lines to allow failures on nightly julia
+        ## (tests will run but not make your overall status red)
+        #matrix:
+        #  allow_failures:
+        #  - julia: nightly
+
+        ## uncomment and modify the following lines to manually install system packages
+        #addons:
+        #  apt: # apt-get for linux
+        #    packages:
+        #    - gfortran
+        #before_script: # homebrew for mac
+        #  - if [ \$TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
+
+        ## uncomment the following lines to override the default test script
         #script:
-        #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
         #  - julia -e 'Pkg.clone(pwd()); Pkg.build("$pkg_name"); Pkg.test("$pkg_name"; coverage=true)'
         $(c)after_success:
         $(c)  # push coverage results to Coveralls
@@ -269,6 +285,13 @@ function appveyor(pkg::AbstractString; force::Bool=false)
         $rel64
           - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
           - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
+
+        ## uncomment the following lines to allow failures on nightly julia
+        ## (tests will run but not make your overall status red)
+        #matrix:
+        #  allow_failures:
+        #  - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
+        #  - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
 
         branches:
           only:
