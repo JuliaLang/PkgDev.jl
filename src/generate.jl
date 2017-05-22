@@ -255,11 +255,11 @@ function appveyor(pkg::AbstractString; force::Bool=false)
     vf = versionfloor(VERSION)
     if vf[end] == '-' # don't know what previous release was
         vf = string(VERSION.major, '.', VERSION.minor)
-        rel32 = "#  - JULIAVERSION: \"julialang/bin/winnt/x86/$vf/julia-$vf-latest-win32.exe\""
-        rel64 = "#  - JULIAVERSION: \"julialang/bin/winnt/x64/$vf/julia-$vf-latest-win64.exe\""
+        rel32 = "#  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x86/$vf/julia-$vf-latest-win32.exe\""
+        rel64 = "#  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x64/$vf/julia-$vf-latest-win64.exe\""
     else
-        rel32 = "  - JULIAVERSION: \"julialang/bin/winnt/x86/$vf/julia-$vf-latest-win32.exe\""
-        rel64 = "  - JULIAVERSION: \"julialang/bin/winnt/x64/$vf/julia-$vf-latest-win64.exe\""
+        rel32 = "  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x86/$vf/julia-$vf-latest-win32.exe\""
+        rel64 = "  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x64/$vf/julia-$vf-latest-win64.exe\""
     end
     genfile(pkg,"appveyor.yml",force) do io
         print(io, """
@@ -267,8 +267,8 @@ function appveyor(pkg::AbstractString; force::Bool=false)
           matrix:
         $rel32
         $rel64
-          - JULIAVERSION: "julianightlies/bin/winnt/x86/julia-latest-win32.exe"
-          - JULIAVERSION: "julianightlies/bin/winnt/x64/julia-latest-win64.exe"
+          - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
+          - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
 
         branches:
           only:
@@ -282,9 +282,10 @@ function appveyor(pkg::AbstractString; force::Bool=false)
             on_build_status_changed: false
 
         install:
+          - ps: "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12"
         # Download most recent Julia Windows binary
           - ps: (new-object net.webclient).DownloadFile(
-                \$("http://s3.amazonaws.com/"+\$env:JULIAVERSION),
+                \$env:JULIA_URL,
                 "C:\\projects\\julia-binary.exe")
         # Run installer silently, output to C:\\projects\\julia
           - C:\\projects\\julia-binary.exe /S /D=C:\\projects\\julia
