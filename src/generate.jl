@@ -156,7 +156,7 @@ function license(pkg::AbstractString,
         println(io, copyright(years,authors))
         lic=readlicense(license)
         for l in split(lic,['\n','\r'])
-            println(io, "> ", l)
+            println(io, ">", repeat(" ", length(l) > 0), l)
         end
     end
     !isempty(file) || info("License file exists, leaving unmodified; use `force=true` to overwrite")
