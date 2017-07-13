@@ -325,6 +325,7 @@ function freeable(io::IO = STDOUT)
             ver, fix = status
             if fix
                 LibGit2.with(GitRepo(pkg)) do repo
+                    LibGit2.isdirty(repo) && return
                     head = string(LibGit2.head_oid(repo))
                     tag = latest_tag(pkg)
                     isnull(tag) && return
