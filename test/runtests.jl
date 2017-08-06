@@ -12,7 +12,7 @@ function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
             Pkg.init()
             @test isdir(Pkg.dir())
             Pkg.resolve()
-    
+
             fn(Pkg.Dir.path())
         finally
             remove_tmp_dir && rm(tmpdir, recursive=true)
@@ -175,6 +175,31 @@ end"""
             finalize(repo)
             finalize(meta_repo)
         end
+
+        # tag_repo
+        # generate a commit
+        repo_name = joinpath(pkgdir, "PackageWithTags")
+        sha = LibGit2.with(LibGit2.GitRepo, repo_name) do repo
+            LibGit2.commit(repo, "dummy commit")
+        end
+        # add this to METADATA but do not tag the package
+        meta_repo_name = joinpath(pkgdir, "METADATA")
+        LibGit2.with(LibGit2.GitRepo, meta_repo_name) do meta_repo
+            PkgDev.Entry.write_tag_metadata(meta_repo, "PackageWithTags", v"0.0.3", sha)
+            LibGit2.commit(meta_repo, "tag PWT")
+        end
+
+        tags = LibGit2.with(LibGit2.GitRepo, repo_name) do repo
+            LibGit2.tag_list(repo)
+        end
+        @test "v0.0.3" ∉ tags
+        # Now fill in the missing tag
+        PkgDev.tag_repo("PackageWithTags", v"0.0.3")
+        tags = LibGit2.with(LibGit2.GitRepo, repo_name) do repo
+            LibGit2.tag_list(repo)
+        end
+        @test "v0.0.3" ∈ tags
+        finalize(meta_repo)
     end
 
     @testset "testing freeable" begin
@@ -191,6 +216,33 @@ end"""
         PkgDev.generate("GreatNewPackage", "MIT")
         PkgDev.register("GreatNewPackage")
         @test !isempty(readstring(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url")))
+    end
+
+    @testset "testing bounds propagation" begin
+        repo_name = joinpath(pkgdir, "GreatNewPackage")
+        PkgDev.tag("GreatNewPackage")
+        open(joinpath(repo_name, "REQUIRE"), "a") do io
+            println(io, "Example")
+        end
+        sha = LibGit2.with(LibGit2.GitRepo, repo_name) do repo
+            LibGit2.add!(repo, "REQUIRE")
+            LibGit2.commit(repo, "add Example requirement")
+        end
+        PkgDev.tag("GreatNewPackage")
+        PkgDev.tag("GreatNewPackage")
+        PkgDev.add_upperbound("GreatNewPackage", "Example", v"0.0.2")
+        r = joinpath(pkgdir, "GreatNewPackage", "REQUIRE")
+        @test "Example 0.0.0- 0.0.2" ∈ map(chomp, readlines(r))
+        r1 = joinpath(pkgdir, "METADATA", "GreatNewPackage", "versions", "0.0.1", "requires")
+        r2 = joinpath(pkgdir, "METADATA", "GreatNewPackage", "versions", "0.0.2", "requires")
+        r3 = joinpath(pkgdir, "METADATA", "GreatNewPackage", "versions", "0.0.3", "requires")
+        @test "Example 0.0.0- 0.0.2" ∈ map(chomp, readlines(r3))
+        @test "Example 0.0.0- 0.0.2" ∉ map(chomp, readlines(r2))
+        @test "Example 0.0.0- 0.0.2" ∉ map(chomp, readlines(r1))
+        @test_throws ErrorException PkgDev.add_upperbound("GreatNewPackage", "Example", v"0.0.3")
+        PkgDev.propagate_upperbound("GreatNewPackage", "Example")
+        @test "Example 0.0.0- 0.0.2" ∈ map(chomp, readlines(r2))
+        @test "Example 0.0.0- 0.0.2" ∉ map(chomp, readlines(r1))
     end
 end
 

@@ -149,6 +149,13 @@ function write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumb
     end
     return nothing
 end
+if isdefined(LibGit2, :GitHash)
+    write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumber, commit::LibGit2.GitHash, force::Bool=false) =
+        write_tag_metadata(repo, pkg, ver, string(commit), force)
+else
+    write_tag_metadata(repo::GitRepo, pkg::AbstractString, ver::VersionNumber, commit::LibGit2.Oid, force::Bool=false) =
+        write_tag_metadata(repo, pkg, ver, string(commit), force)
+end
 
 function register(pkg::AbstractString, url::AbstractString)
     pkgdir = PkgDev.dir(pkg)
@@ -293,6 +300,27 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
     return
 end
 
+function tag_repo(pkg::AbstractString, ver::VersionNumber, force::Bool, commitish::AbstractString)
+    pkgdir = PkgDev.dir(pkg)
+    ispath(pkgdir,".git") || throw(PkgError("$pkg is not a git repo"))
+    metapath = Pkg.dir("METADATA")
+    with(GitRepo,metapath) do repo
+        LibGit2.isdirty(repo, pkg) && throw(PkgError("METADATA/$pkg is dirty – commit or stash changes to tag"))
+    end
+    with(GitRepo, pkgdir) do repo
+        LibGit2.isdirty(repo) && throw(PkgError("$pkg is dirty – commit or stash changes to tag"))
+        commit = string(LibGit2.revparseid(repo, commitish))
+        urlfile = joinpath(metapath,pkg,"url")
+        isfile(urlfile) || error("$pkg is not registered")
+        # TODO: check that SHA1 isn't the same as another version
+        info("Tagging $pkg v$ver")
+        LibGit2.tag_create(repo, "v$ver", commit,
+                           msg=(!isrewritable(ver) ? "$pkg v$ver [$(commit[1:10])]" : ""),
+                           force=(force || isrewritable(ver)) )
+    end
+    return
+end
+
 function check_metadata(pkgs::Set{String} = Set{String}())
     avail = Pkg.cd(Read.available)
     deps, conflicts = Query.dependencies(avail)
@@ -352,6 +380,80 @@ function freeable(io::IO = STDOUT)
         end
     end
     freelist
+end
+
+function add_upperbound(pkg::AbstractString, dependency::AbstractString, version::VersionNumber)
+    # Determine the most recent version
+    latest = maximum(Pkg.available(pkg))
+    d = join(["METADATA", pkg, "versions", string(latest)], '/')
+
+    # Parse REQUIRE/requires and add the new upper bound
+    for (dirname, filename) in ((Pkg.dir(pkg), "REQUIRE"),
+                                (Pkg.dir(d), "requires"))
+        lines = cd(dirname) do
+            Pkg.Reqs.read(filename)
+        end
+        i = find_dependency_index(lines, dependency, pkg)
+        vs = getvs(lines[i])
+        if vs.upper < version
+            error("$pkg already has a tigher upper bound $(vs.upper) < $version")
+        end
+        vs.upper == typemax(VersionNumber) || vs.upper == version ||
+            warn("replacing upper bound $(vs.upper) with $version")
+        vs = Pkg.Types.VersionSet(vs.lower, version)
+        line = Pkg.Reqs.Requirement(lines[i].package, vs, lines[i].system)
+        lines[i] = line
+
+        # Write the updated files
+        cd(dirname) do
+            Pkg.Reqs.write(filename, lines)
+        end
+    end
+    nothing
+end
+
+function propagate_upperbound(pkg::AbstractString, dependency::AbstractString)
+    versions = Pkg.available(pkg)
+    latest = versions[end]
+    d = join(["METADATA", pkg, "versions", string(latest)], '/')
+    lines = cd(Pkg.dir(d)) do
+        Pkg.Reqs.read("requires")
+    end
+    i = find_dependency_index(lines, dependency, pkg)
+    vs = getvs(lines[i])
+
+    upper = vs.upper
+    for v in versions[end-1:-1:1]
+        d = join(["METADATA", pkg, "versions", string(v)], '/')
+        lines = cd(Pkg.dir(d)) do
+            Pkg.Reqs.read("requires")
+        end
+        idx = find(line->isa(line, Pkg.Reqs.Requirement) && line.package == dependency, lines)
+        isempty(idx) && continue
+        i = idx[1]
+        vs = getvs(lines[i])
+        if vs.upper > upper
+            vs = Pkg.Types.VersionSet(vs.lower, upper)
+            line = Pkg.Reqs.Requirement(lines[i].package, vs, lines[i].system)
+            lines[i] = line
+            cd(Pkg.dir(d)) do
+                Pkg.Reqs.write("requires", lines)
+            end
+        else
+            upper = vs.upper
+        end
+    end
+end
+
+function find_dependency_index(lines, dependency, pkg)
+    idx = find(line->isa(line, Pkg.Reqs.Requirement) && line.package == dependency, lines)
+    isempty(idx) && error("package $pkg doesn't depend on $dependency")
+    idx[1]
+end
+
+function getvs(line)
+    length(line.versions.intervals) == 1 || error("multiple bounds intervals are not supported, please edit file manually")
+    vs = line.versions.intervals[1]
 end
 
 end
