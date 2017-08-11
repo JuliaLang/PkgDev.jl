@@ -1,6 +1,7 @@
 const LICENSES = Dict(
     "MIT" => "MIT \"Expat\" License",
     "BSD" => "Simplified \"2-clause\" BSD License",
+    "ISC" => "Internet Systems Consortium Licence",
     "ASL" => "Apache License, Version 2.0",
     "MPL" => "Mozilla Public License, Version 2.0",
     "GPL-2.0+" => "GNU Public License, Version 2.0+",
