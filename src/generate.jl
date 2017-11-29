@@ -344,6 +344,7 @@ function gitignore(pkg::AbstractString; force::Bool=false)
         *.jl.cov
         *.jl.*.cov
         *.jl.mem
+        deps/deps.jl
         """)
     end
 end
