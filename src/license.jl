@@ -7,7 +7,8 @@ const LICENSES = Dict(
     "GPL-2.0+" => "GNU Public License, Version 2.0+",
     "GPL-3.0+" => "GNU Public License, Version 3.0+",
     "LGPL-2.1+" => "Lesser GNU Public License, Version 2.1+",
-    "LGPL-3.0+" => "Lesser GNU Public License, Version 3.0+"
+    "LGPL-3.0+" => "Lesser GNU Public License, Version 3.0+",
+    "CC0" => "Creative Commons Universal Public Domain Dedication (CC0 1.0)"
 )
 
 
