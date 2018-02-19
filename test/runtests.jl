@@ -2,7 +2,10 @@ using PkgDev
 using Base.Test
 using Compat
 import Base.Pkg.PkgError
-using Compat.Random
+
+if VERSION >= v"0.6"
+    using Compat.Random
+end
 
 function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
     # Used in tests below to set up and tear down a sandboxed package directory
