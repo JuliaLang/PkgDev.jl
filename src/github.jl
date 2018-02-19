@@ -1,6 +1,6 @@
 module GitHub
 
-import Main, Base.Pkg.PkgError
+import Base.Pkg.PkgError
 import JSON
 using Compat
 
