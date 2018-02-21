@@ -40,7 +40,7 @@ function curl(url::AbstractString, opts::Cmd=``)
     end
     throw(PkgError("strangely formatted HTTP response"))
 end
-curl(url::AbstractString, data::Void, opts::Cmd=``) = curl(url,opts)
+curl(url::AbstractString, data::Compat.Nothing, opts::Cmd=``) = curl(url,opts)
 curl(url::AbstractString, data, opts::Cmd=``) =
     curl(url,`--data $(sprint(io->JSON.print(io,data))) $opts`)
 
