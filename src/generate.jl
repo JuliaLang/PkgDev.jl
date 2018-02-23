@@ -1,7 +1,6 @@
 module Generate
 
-import Base.LibGit2, Base.Pkg.Read, Base.Pkg.PkgError
-importall Base.LibGit2
+using Compat, Compat.Pkg, Compat.LibGit2, Compat.Dates
 import ..PkgDev: readlicense, LICENSES
 
 copyright_year() =  string(Dates.year(Dates.today()))
@@ -49,7 +48,7 @@ function package(
             repo = GitRepo(pkg_path)
             if LibGit2.isdirty(repo)
                 finalize(repo)
-                throw(PkgError("$pkg is dirty – commit or stash your changes"))
+                throw(Pkg.PkgError("$pkg is dirty – commit or stash your changes"))
             end
             repo
         end
@@ -82,18 +81,18 @@ function package(
             """
             LibGit2.add!(repo, files..., flags = LibGit2.Consts.INDEX_ADD_FORCE)
             if isnew
-                info("Committing $pkg generated files")
+                Compat.@info("Committing $pkg generated files")
                 LibGit2.commit(repo, msg)
             elseif LibGit2.isdirty(repo)
                 LibGit2.remove!(repo, files...)
-                info("Regenerated files left unstaged, use `git add -p` to select")
+                Compat.@info("Regenerated files left unstaged, use `git add -p` to select")
                 open(io->print(io,msg), joinpath(LibGit2.gitdir(repo),"MERGE_MSG"), "w")
             else
-                info("Regenerated files are unchanged")
+                Compat.@info("Regenerated files are unchanged")
             end
         end
     catch
-        isnew && rm(pkg_path, recursive=true)
+        isnew && Base.rm(pkg_path, recursive=true)
         rethrow()
     end
     return
@@ -102,7 +101,7 @@ end
 function init(pkg::AbstractString, url::AbstractString=""; config::Dict=Dict())
     if !ispath(pkg)
         pkg_name = basename(pkg)
-        info("Initializing $pkg_name repo: $pkg")
+        Compat.@info("Initializing $pkg_name repo: $pkg")
         repo = LibGit2.init(pkg)
         try
             with(GitConfig, repo) do cfg
@@ -112,14 +111,14 @@ function init(pkg::AbstractString, url::AbstractString=""; config::Dict=Dict())
             end
             LibGit2.commit(repo, "initial empty commit")
         catch err
-            throw(PkgError("Unable to initialize $pkg_name package: $err"))
+            throw(Pkg.PkgError("Unable to initialize $pkg_name package: $err"))
         end
     else
         repo = GitRepo(pkg)
     end
     try
         if !isempty(url)
-            info("Origin: $url")
+            Compat.@info("Origin: $url")
             with(LibGit2.GitRemote, repo, "origin", url) do rmt
                 LibGit2.save(rmt)
             end
@@ -132,7 +131,7 @@ end
 function genfile(f::Function, pkg::AbstractString, file::AbstractString, force::Bool=false)
     path = joinpath(pkg,file)
     if force || !ispath(path)
-        info("Generating $file")
+        Compat.@info("Generating $file")
         mkpath(dirname(path))
         open(f, path, "w")
         return file
@@ -149,7 +148,7 @@ function license(pkg::AbstractString,
     file = genfile(pkg,"LICENSE.md",force) do io
         if !haskey(LICENSES, license)
             licenses = join(sort!(collect(keys(LICENSES)), by=lowercase), ", ")
-            throw(PkgError("$license is not a known license choice, choose one of: $licenses."))
+            throw(Pkg.PkgError("$license is not a known license choice, choose one of: $licenses."))
         end
         println(io, "The $pkg_name.jl package is licensed under the $(LICENSES[license]):")
         println(io)
@@ -159,7 +158,7 @@ function license(pkg::AbstractString,
             println(io, ">", length(l) > 0 ? " " : "", l)
         end
     end
-    !isempty(file) || info("License file exists, leaving unmodified; use `force=true` to overwrite")
+    !isempty(file) || Compat.@info("License file exists, leaving unmodified; use `force=true` to overwrite")
     file
 end
 
@@ -186,7 +185,11 @@ function tests(pkg::AbstractString; force::Bool=false)
     genfile(pkg,"test/runtests.jl",force) do io
         print(io, """
         using $pkg_name
+        @static if VERSION < v"0.7.0-DEV.2005"
         using Base.Test
+        else
+        using Test
+        end
 
         # write your own tests here
         @test 1 == 2
@@ -321,7 +324,7 @@ function appveyor(pkg::AbstractString; force::Bool=false)
         build_script:
         # Need to convert from shallow to complete for Pkg.clone to work
           - IF EXIST .git\\shallow (git fetch --unshallow)
-          - C:\\projects\\julia\\bin\\julia -e "versioninfo();
+          - C:\\projects\\julia\\bin\\julia -e "versionCompat.@info();
               Pkg.clone(pwd(), \\"$pkg_name\\"); Pkg.build(\\"$pkg_name\\")"
 
         test_script:
