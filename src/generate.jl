@@ -147,11 +147,19 @@ function license(pkg::AbstractString,
                  force::Bool=false)
     pkg_name = basename(pkg)
     file = genfile(pkg,"LICENSE.md",force) do io
-        if !haskey(LICENSES, license)
+        is_file = isfile(license)
+        if !is_file && !haskey(LICENSES, license)
             licenses = join(sort!(collect(keys(LICENSES)), by=lowercase), ", ")
-            throw(PkgError("$license is not a known license choice, choose one of: $licenses."))
+            throw(PkgError("$license is neither a known license choice nor a valid "*
+            "license file, choose one of: $licenses or provide a valid license file."))
         end
-        println(io, "The $pkg_name.jl package is licensed under the $(LICENSES[license]):")
+        if is_file
+            println(io, "The $pkg_name.jl package is licensed under the following "*
+            "agreements:")
+        else
+            println(io, "The $pkg_name.jl package is licensed under the "*
+            "$(LICENSES[license]):")
+        end
         println(io)
         println(io, copyright(years,authors))
         lic=readlicense(license)

@@ -12,7 +12,7 @@ function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
             Pkg.init()
             @test isdir(Pkg.dir())
             Pkg.resolve()
-    
+
             fn(Pkg.Dir.path())
         finally
             remove_tmp_dir && rm(tmpdir, recursive=true)
@@ -191,6 +191,14 @@ end"""
         PkgDev.generate("GreatNewPackage", "MIT")
         PkgDev.register("GreatNewPackage")
         @test !isempty(readstring(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url")))
+    end
+
+    @testset "testing package with custom license" begin
+        write("custom_lic.md", "This is my proprietary license.\n")
+        PkgDev.generate("CustomLicense", "custom_lic.md")
+        @test searchindex(readstring(joinpath(Pkg.dir("CustomLicense"), "LICENSE.md")),
+                          "This is my proprietary license.\n") > 0
+        rm("custom_lic.md")
     end
 end
 
