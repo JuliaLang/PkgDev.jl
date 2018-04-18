@@ -70,7 +70,7 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
         # get changed files
         for path in LibGit2.diff_files(repo, "origin/$branch", LibGit2.Consts.HEAD_FILE)
             m = match(r"^(.+?)/versions/([^/]+)/sha1$", path)
-            m !== nothing && contains(m.captures[2], Base.VERSION_REGEX) || continue
+            m !== nothing && occursin(Base.VERSION_REGEX, m.captures[2]) || continue
             pkg, ver = m.captures; ver = VersionNumber(ver)
             sha1 = readchomp(joinpath(metapath,path))
             old = LibGit2.cat(repo, LibGit2.GitBlob, "origin/$branch:$path")
@@ -156,7 +156,7 @@ function register(pkg::AbstractString, url::AbstractString)
         # Get versions from package repo
         versions = with(LibGit2.GitRepo, pkgdir) do pkg_repo
             tags = filter(t->startswith(t,"v"), LibGit2.tag_list(pkg_repo))
-            filter!(tag->contains(tag, Base.VERSION_REGEX), tags)
+            filter!(tag->occursin(Base.VERSION_REGEX, tag), tags)
             Dict(
                 VersionNumber(tag) => string(LibGit2.revparseid(pkg_repo, "$tag^{commit}"))
                 for tag in tags
@@ -232,7 +232,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
             ancestors = filter(v->LibGit2.is_ancestor_of(avail[v].sha1, commit, repo), existing)
         else
             tags = filter(t->startswith(t,"v"), LibGit2.tag_list(repo))
-            filter!(tag->contains(tag, Base.VERSION_REGEX), tags)
+            filter!(tag->occursin(Base.VERSION_REGEX, tag), tags)
             existing = [VersionNumber(x) for x in tags]
             filter!(tags) do tag
                 sha1 = string(LibGit2.revparseid(repo, "$tag^{commit}"))
@@ -272,7 +272,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
                     if prev_ver_idx != 0
                         prev_ver = string(existing[prev_ver_idx])
                         prev_sha = readchomp(joinpath(metapath,pkg,"versions",prev_ver,"sha1"))
-                        if contains(repourl, LibGit2.GITHUB_REGEX)
+                        if occursin(LibGit2.GITHUB_REGEX, repourl)
                             tagmsg *= "\n\nDiff vs v$prev_ver: $repourl/compare/$prev_sha...$commit"
                         end
                     end

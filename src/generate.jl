@@ -186,9 +186,9 @@ function tests(pkg::AbstractString; force::Bool=false)
         print(io, """
         using $pkg_name
         @static if VERSION < v"0.7.0-DEV.2005"
-        using Base.Test
+            using Base.Test
         else
-        using Test
+            using Test
         end
 
         # write your own tests here
@@ -324,7 +324,7 @@ function appveyor(pkg::AbstractString; force::Bool=false)
         build_script:
         # Need to convert from shallow to complete for Pkg.clone to work
           - IF EXIST .git\\shallow (git fetch --unshallow)
-          - C:\\projects\\julia\\bin\\julia -e "versionCompat.@info();
+          - C:\\projects\\julia\\bin\\julia -e "versioninfo();
               Pkg.clone(pwd(), \\"$pkg_name\\"); Pkg.build(\\"$pkg_name\\")"
 
         test_script:

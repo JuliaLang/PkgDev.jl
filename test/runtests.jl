@@ -10,7 +10,7 @@ function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
             Pkg.init()
             @test isdir(Pkg.dir())
             Pkg.resolve()
-    
+
             fn(Pkg.Dir.path())
         finally
             remove_tmp_dir && Base.rm(tmpdir, recursive=true)
@@ -23,7 +23,7 @@ temp_pkg_dir() do pkgdir
     @testset "testing a package with test dependencies causes them to be installed for the duration of the test" begin
         PkgDev.generate("PackageWithTestDependencies", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
         @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
-        @test String(read(Pkg.dir("PackageWithTestDependencies","REQUIRE"))) == "julia $(PkgDev.Generate.versionfloor(VERSION))\n"
+        @test read(Pkg.dir("PackageWithTestDependencies","REQUIRE"), String) == "julia $(PkgDev.Generate.versionfloor(VERSION))\n"
 
         isdir(Pkg.dir("PackageWithTestDependencies","test")) || mkdir(Pkg.dir("PackageWithTestDependencies","test"))
         open(Pkg.dir("PackageWithTestDependencies","test","REQUIRE"),"w") do f
@@ -125,14 +125,14 @@ end"""
 
         Pkg.test("PackageWithCodeCoverage")
         covdir = Pkg.dir("PackageWithCodeCoverage","src")
-        covfiles = filter!(x -> contains(x, "PackageWithCodeCoverage.jl") && contains(x,".cov"), readdir(covdir))
+        covfiles = filter!(x -> occursin("PackageWithCodeCoverage.jl", x) && occursin(".cov", x), readdir(covdir))
         @test isempty(covfiles)
         Pkg.test("PackageWithCodeCoverage", coverage=true)
-        covfiles = filter!(x -> contains(x, "PackageWithCodeCoverage.jl") && contains(x,".cov"), readdir(covdir))
+        covfiles = filter!(x -> occursin("PackageWithCodeCoverage.jl", x) && occursin(".cov", x), readdir(covdir))
         @test !isempty(covfiles)
         for file in covfiles
             @test isfile(joinpath(covdir,file))
-            covstr = String(read(joinpath(covdir,file)))
+            covstr = read(joinpath(covdir,file), String)
             srclines = split(src, '\n')
             covlines = split(covstr, '\n')
             for i = 1:length(linetested)
@@ -151,9 +151,7 @@ end"""
 
     @testset "testing package tags" begin
         PkgDev.generate("PackageWithTags", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
-        try
-            PkgDev.register("PackageWithTags")
-        end
+        PkgDev.register("PackageWithTags")
         PkgDev.tag("PackageWithTags")
         PkgDev.tag("PackageWithTags")
 
@@ -162,11 +160,11 @@ end"""
         meta_repo = LibGit2.GitRepo(joinpath(pkgdir, "METADATA"))
         try
             tags = LibGit2.tag_list(repo)
-            @test ("v0.0.1" in tags) == true
-            @test ("v0.0.2" in tags) == true
+            @test ("v0.0.1" in tags)
+            @test ("v0.0.2" in tags)
             # test that those version files exist
-            # @test ispath(joinpath(pkgdir, "METADATA", "PackageWithTags",
-            #                       "versions", "0.0.1", "sha1")) == true
+            @test ispath(joinpath(pkgdir, "METADATA", "PackageWithTags",
+                                  "versions", "0.0.1", "sha1"))
             # check that we actually commited those files to METADATA
             # (this test always succeeds for some reason -- we should be using
             #  git_diff_index_to_workdir here)
@@ -181,17 +179,17 @@ end"""
         Pkg.add("Example")
         io = IOBuffer()
         f = PkgDev.freeable(io)
-        @test !(any(f .== "Example") || contains(String(take!(io)), "Example"))
+        @test !(any(f .== "Example") || occursin("Example", String(take!(io))))
         Pkg.checkout("Example")
         f = PkgDev.freeable(io)
-        @test any(f .== "Example") || contains(String(take!(io)), "Example")
+        @test any(f .== "Example") || occursin("Example", String(take!(io)))
     end
 
-    # @testset "testing package registration" begin
-    #     PkgDev.generate("GreatNewPackage", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org")))
-    #     PkgDev.register("GreatNewPackage")
-    #     @test !isempty(String(read(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url"))))
-    # end
+    @testset "testing package registration" begin
+        PkgDev.generate("GreatNewPackage", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
+        PkgDev.register("GreatNewPackage")
+        @test !isempty(read(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url"), String))
+    end
 end
 
 @testset "Testing package utils" begin

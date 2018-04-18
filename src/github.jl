@@ -30,7 +30,7 @@ function curl(url::AbstractString, opts::Cmd=``)
     status = parse(Int,split(head,r"\s+";limit=3)[2])
     header = Dict{AbstractString,AbstractString}()
     for line in eachline(out)
-        if !contains(line, r"^\s*$")
+        if !occursin(r"^\s*$", line)
             (k,v) = split(line, r":\s*"; limit=2)
             header[k] = v
             continue
