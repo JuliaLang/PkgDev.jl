@@ -31,8 +31,11 @@ temp_pkg_dir() do pkgdir
         end
 
         open(Pkg.dir("PackageWithTestDependencies","test","runtests.jl"),"w") do f
-            println(f,"using Base.Test")
-            println(f,"@test haskey(Pkg.installed(), \"Example\")")
+            println(f, "using " * (VERSION < v"0.7.0-DEV.2005" ? "Base." : "") * "Test")
+            if VERSION >= v"0.7.0-DEV.3656"
+                println(f, "using Pkg")
+            end
+            println(f, "@test haskey(Pkg.installed(), \"Example\")")
         end
 
         Pkg.resolve()
@@ -78,8 +81,8 @@ temp_pkg_dir() do pkgdir
 
         isdir(Pkg.dir("PackageWithFailingTests","test")) || mkdir(Pkg.dir("PackageWithFailingTests","test"))
         open(Pkg.dir("PackageWithFailingTests", "test", "runtests.jl"),"w") do f
-            println(f,"using Base.Test")
-            println(f,"@test false")
+            println(f, "using " * (VERSION < v"0.7.0-DEV.2005" ? "Base." : "") * "Test")
+            println(f, "@test false")
         end
 
         try
@@ -113,9 +116,10 @@ end"""
         end
         isdir(Pkg.dir("PackageWithCodeCoverage","test")) || mkdir(Pkg.dir("PackageWithCodeCoverage","test"))
         open(Pkg.dir("PackageWithCodeCoverage", "test", "runtests.jl"),"w") do f
-            println(f,"using PackageWithCodeCoverage, Base.Test")
-            println(f,"@test f2(2) == 4")
-            println(f,"@test f3(5) == 15")
+            println(f, "using PackageWithCodeCoverage")
+            println(f, "using " * (VERSION < v"0.7.0-DEV.2005" ? "Base." : "") * "Test")
+            println(f, "@test f2(2) == 4")
+            println(f, "@test f3(5) == 15")
         end
 
         let codecov_yml = Pkg.dir("PackageWithCodeCoverage", ".codecov.yml")
