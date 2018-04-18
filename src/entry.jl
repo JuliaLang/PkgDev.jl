@@ -268,7 +268,7 @@ function tag(pkg::AbstractString, ver::Union{Symbol,VersionNumber}, force::Bool=
                     # Convert repo url into proper http url
                     repourl = getrepohttpurl(readchomp(urlfile))
                     tagmsg = "Tag $pkg v$ver [$repourl]"
-                    prev_ver_idx = isa(ver, Symbol) ? 0 : findlast(v -> v < ver, existing)
+                    prev_ver_idx = isa(ver, Symbol) ? 0 : coalesce(findlast(v -> v < ver, existing), 0)
                     if prev_ver_idx != 0
                         prev_ver = string(existing[prev_ver_idx])
                         prev_sha = readchomp(joinpath(metapath,pkg,"versions",prev_ver,"sha1"))
