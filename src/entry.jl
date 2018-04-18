@@ -73,7 +73,7 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
             m !== nothing && occursin(Base.VERSION_REGEX, m.captures[2]) || continue
             pkg, ver = m.captures; ver = VersionNumber(ver)
             sha1 = readchomp(joinpath(metapath,path))
-            old = LibGit2.cat(repo, LibGit2.GitBlob, "origin/$branch:$path")
+            old = LibGit2.content(LibGit2.GitBlob(repo, "origin/$branch:$path"))
             old !== nothing && old != sha1 && throw(Pkg.PkgError("$pkg v$ver SHA1 changed in METADATA – refusing to publish"))
             with(LibGit2.GitRepo, PkgDev.dir(pkg)) do pkg_repo
                 tag_name = "v$ver"
@@ -120,7 +120,7 @@ end
 function write_tag_metadata(repo::LibGit2.GitRepo, pkg::AbstractString, ver::VersionNumber, commit::AbstractString, force::Bool=false)
     pkgdir = PkgDev.dir(pkg)
     content = with(LibGit2.GitRepo, pkgdir) do pkg_repo
-        LibGit2.cat(pkg_repo, LibGit2.GitBlob, "$commit:REQUIRE")
+        LibGit2.content(LibGit2.GitBlob(pkg_repo, "$commit:REQUIRE"))
     end
     reqs = content !== nothing ? Pkg.Reqs.read(split(content, '\n', keep=false)) : Pkg.Reqs.Line[]
     cd(Pkg.dir("METADATA")) do
