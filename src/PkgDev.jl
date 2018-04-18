@@ -2,8 +2,7 @@ __precompile__()
 
 module PkgDev
 
-using Compat
-import Compat.String
+using Compat, Compat.Pkg, Compat.LibGit2
 
 export Entry, Generate, GitHub
 
@@ -26,7 +25,11 @@ Return package `pkg` directory location through search. Additional `paths` are a
 """
 function dir(pkg::AbstractString)
     pkg = splitjl(pkg)
-    pkgsrc = Base.find_in_path(pkg, Pkg.dir())
+    if isdefined(Base, :find_in_path)
+        pkgsrc = Base.find_in_path(pkg, Pkg.dir())
+    else
+        pkgsrc = Base.find_package(pkg)
+    end
     pkgsrc === nothing && return ""
     abspath(dirname(pkgsrc), "..") |> realpath
 end
@@ -74,7 +77,7 @@ will be automatically generated.
 """
 publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), prbranch)
 
-doc"""
+@doc raw"""
     generate(pkg,license)
 
 Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"BSD"`,
@@ -159,7 +162,8 @@ function __init__()
     try
         username = LibGit2.get(cfg, "user.name", "")
         if isempty(username)
-            warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` before performing any operations.")
+            Compat.@warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` " *
+                         "before performing any operations.")
         end
     finally
         finalize(cfg)
