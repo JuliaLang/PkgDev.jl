@@ -331,7 +331,8 @@ function freeable(io::IO = STDOUT)
                         try
                             vrs = LibGit2.revcount(repo, taggedsha, head)
                         catch
-                            warn("skipping $pkg because the tagged commit $taggedsha was not found in the git revision history")
+                            Compat.@warn("skipping $pkg because the tagged commit $taggedsha " *
+                                         "was not found in the git revision history")
                             return
                         end
                         n = vrs[2] - vrs[1]

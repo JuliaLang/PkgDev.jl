@@ -162,7 +162,8 @@ function __init__()
     try
         username = LibGit2.get(cfg, "user.name", "")
         if isempty(username)
-            warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` before performing any operations.")
+            Compat.@warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` " *
+                         "before performing any operations.")
         end
     finally
         finalize(cfg)
