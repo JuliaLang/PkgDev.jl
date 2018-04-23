@@ -73,8 +73,17 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
             m !== nothing && occursin(Base.VERSION_REGEX, m.captures[2]) || continue
             pkg, ver = m.captures; ver = VersionNumber(ver)
             sha1 = readchomp(joinpath(metapath,path))
-            old = LibGit2.content(LibGit2.GitBlob(repo, "origin/$branch:$path"))
-            old !== nothing && old != sha1 && throw(Pkg.PkgError("$pkg v$ver SHA1 changed in METADATA – refusing to publish"))
+            try
+                old = LibGit2.content(LibGit2.GitBlob(repo, "origin/$branch:$path"))
+                if old != sha1
+                    throw(Pkg.PkgError("$pkg v$ver SHA1 changed in METADATA – refusing to publish"))
+                end
+            catch e
+                if !(e isa LibGit2.GitError)
+                    rethrow(e)
+                end
+            end
+                
             with(LibGit2.GitRepo, PkgDev.dir(pkg)) do pkg_repo
                 tag_name = "v$ver"
                 tag_commit = LibGit2.revparseid(pkg_repo, "$(tag_name)^{commit}")
