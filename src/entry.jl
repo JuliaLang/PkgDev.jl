@@ -79,7 +79,7 @@ function publish(branch::AbstractString, prbranch::AbstractString="")
                     throw(Pkg.PkgError("$pkg v$ver SHA1 changed in METADATA – refusing to publish"))
                 end
             catch e
-                if !(e isa LibGit2.GitError)
+                if !(e isa LibGit2.GitError && e.code == LibGit2.Error.ENOTFOUND)
                     rethrow(e)
                 end
             end
