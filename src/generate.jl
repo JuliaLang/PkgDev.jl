@@ -185,11 +185,7 @@ function tests(pkg::AbstractString; force::Bool=false)
     genfile(pkg,"test/runtests.jl",force) do io
         print(io, """
         using $pkg_name
-        @static if VERSION < v"0.7.0-DEV.2005"
-            using Base.Test
-        else
-            using Test
-        end
+        using Test
 
         # write your own tests here
         @test 1 == 2
@@ -259,12 +255,12 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
 
         ## uncomment the following lines to override the default test script
         #script:
-        #  - julia -e 'Pkg.clone(pwd()); Pkg.build("$pkg_name"); Pkg.test("$pkg_name"; coverage=true)'
+        #  - julia -e 'Pkg.build(); Pkg.test(; coverage=true)'
         $(c)after_success:
         $(c)  # push coverage results to Coveralls
-        $(c)  - julia -e 'cd(Pkg.dir("$pkg_name")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+        $(c)  - julia -e 'Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
         $(c)  # push coverage results to Codecov
-        $(c)  - julia -e 'cd(Pkg.dir("$pkg_name")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+        $(c)  - julia -e 'Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
         """)
     end
 end
@@ -283,6 +279,7 @@ function appveyor(pkg::AbstractString; force::Bool=false)
     genfile(pkg,"appveyor.yml",force) do io
         print(io, """
         environment:
+          JULIA_PROJECT: @.
           matrix:
         $rel32
         $rel64
@@ -322,13 +319,11 @@ function appveyor(pkg::AbstractString; force::Bool=false)
           - C:\\projects\\julia-binary.exe /S /D=C:\\projects\\julia
 
         build_script:
-        # Need to convert from shallow to complete for Pkg.clone to work
-          - IF EXIST .git\\shallow (git fetch --unshallow)
-          - C:\\projects\\julia\\bin\\julia -e "versioninfo();
-              Pkg.clone(pwd(), \\"$pkg_name\\"); Pkg.build(\\"$pkg_name\\")"
+          - C:\\projects\\julia\\bin\\julia -e "import InteractiveUtils; versioninfo();
+              Pkg.build()"
 
         test_script:
-          - C:\\projects\\julia\\bin\\julia -e "Pkg.test(\\"$pkg_name\\")"
+          - C:\\projects\\julia\\bin\\julia -e "Pkg.test()"
         """)
     end
 end

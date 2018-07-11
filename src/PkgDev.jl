@@ -2,38 +2,19 @@ __precompile__()
 
 module PkgDev
 
-using Compat, Compat.Pkg, Compat.LibGit2
-
-export Entry, Generate, GitHub
+using LibGit2
+import Pkg
 
 include("utils.jl")
 include("github.jl")
-include("entry.jl")
+#include("entry.jl")
 include("license.jl")
 include("generate.jl")
 
-const cd = Pkg.Dir.cd
-
+#=
 # remove extension .jl
 const PKGEXT = ".jl"
 splitjl(pkg::AbstractString) = endswith(pkg, PKGEXT) ? pkg[1:end-length(PKGEXT)] : pkg
-
-"""
-    dir(pkg, [paths...])
-
-Return package `pkg` directory location through search. Additional `paths` are appended.
-"""
-function dir(pkg::AbstractString)
-    pkg = splitjl(pkg)
-    if isdefined(Base, :find_in_path)
-        pkgsrc = Base.find_in_path(pkg, Pkg.dir())
-    else
-        pkgsrc = Base.find_package(pkg)
-    end
-    pkgsrc === nothing && return ""
-    abspath(dirname(pkgsrc), "..") |> realpath
-end
-dir(pkg::AbstractString, args...) = normpath(dir(pkg),args...)
 
 """
     register(pkg, [url])
@@ -76,6 +57,7 @@ Optionally, function accepts a name for a pull request branch. If it  isn't prov
 will be automatically generated.
 """
 publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), prbranch)
+=#
 
 @doc raw"""
     generate(pkg,license)
@@ -141,20 +123,6 @@ function config(force::Bool=false)
     lowercase(LibGit2.prompt("Do you want to change this configuration?", default="N")) == "y" && config(true)
     return
 end
-
-"""
-    freeable([io::IO=STDOUT])
-
-Return a list of packages which are good candidates for `Pkg.free`. These are packages for
-which you are not tracking the tagged release, but for which a tagged release is equivalent
-to the current version. You can use `Pkg.free(PkgDev.freeable())` to automatically free all
-such packages.
-
-This also prints (to `io`, defaulting to standard output) a list of packages that are ahead
-of a tagged release, and prints the number of commits that separate them. It can help
-discover packages that may be due for tagging.
-"""
-freeable(args...) = cd(Entry.freeable, args...)
 
 function __init__()
     # Check if git configuration exists
