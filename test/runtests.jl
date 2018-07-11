@@ -1,29 +1,42 @@
 using PkgDev
-using Compat, Test, Compat.Pkg, Compat.Random, Compat.LibGit2
+using Test, Pkg, Random, LibGit2
 
-function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
-    # Used in tests below to set up and tear down a sandboxed package directory
-    tmpdir = joinpath(tempdir(),Random.randstring())
-    withenv("JULIA_PKGDIR" => tmpdir) do
-        @test !isdir(Pkg.dir())
-        try
-            Pkg.init()
-            @test isdir(Pkg.dir())
-            Pkg.resolve()
-
-            fn(Pkg.Dir.path())
-        finally
-            remove_tmp_dir && Base.rm(tmpdir, recursive=true)
+function temp_pkg_dir(fn::Function)
+    local env_dir
+    local old_load_path
+    local old_depot_path
+    local old_home_project
+    local old_active_project
+    try
+        old_load_path = copy(LOAD_PATH)
+        old_depot_path = copy(DEPOT_PATH)
+        old_home_project = Base.HOME_PROJECT[]
+        old_active_project = Base.ACTIVE_PROJECT[]
+        empty!(LOAD_PATH)
+        empty!(DEPOT_PATH)
+        Base.HOME_PROJECT[] = nothing
+        Base.ACTIVE_PROJECT[] = nothing
+        mktempdir() do env_dir
+            mktempdir() do depot_dir
+                push!(LOAD_PATH, "@", "@v#.#", "@stdlib")
+                push!(DEPOT_PATH, depot_dir)
+                fn(env_dir)
+            end
         end
+    finally
+        empty!(LOAD_PATH)
+        empty!(DEPOT_PATH)
+        append!(LOAD_PATH, old_load_path)
+        append!(DEPOT_PATH, old_depot_path)
+        Base.HOME_PROJECT[] = old_home_project
+        Base.ACTIVE_PROJECT[] = old_active_project
     end
 end
 
-temp_pkg_dir() do pkgdir
-
+temp_pkg_dir() do pkgdir; cd(pkgdir) do
     @testset "testing a package with test dependencies causes them to be installed for the duration of the test" begin
         PkgDev.generate("PackageWithTestDependencies", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
-        @test [keys(Pkg.installed())...] == ["PackageWithTestDependencies"]
-        @test read(Pkg.dir("PackageWithTestDependencies","REQUIRE"), String) == "julia $(PkgDev.Generate.versionfloor(VERSION))\n"
+        Pkg.dev("PackageWithTestDependencies")
 
         isdir(Pkg.dir("PackageWithTestDependencies","test")) || mkdir(Pkg.dir("PackageWithTestDependencies","test"))
         open(Pkg.dir("PackageWithTestDependencies","test","REQUIRE"),"w") do f
@@ -50,7 +63,7 @@ temp_pkg_dir() do pkgdir
             Pkg.pin("PackageWithTestDependencies", v"1.0.0")
             error("unexpected")
         catch err
-            @test isa(err, Pkg.PkgError)
+            @test isa(err, PkgDevError)
             @test err.msg == "PackageWithTestDependencies cannot be pinned – not a registered package"
         end
     end
@@ -147,7 +160,7 @@ end"""
     end
 
     if haskey(ENV, "CI") && lowercase(ENV["CI"]) == "true"
-        Compat.@info("setting git global configuration")
+        @info("setting git global configuration")
         run(`git config --global user.name "Julia Test"`)
         run(`git config --global user.email test@julialang.org`)
         run(`git config --global github.user JuliaTest`)
@@ -194,7 +207,7 @@ end"""
         PkgDev.register("GreatNewPackage")
         @test !isempty(read(joinpath(pkgdir, "METADATA", "GreatNewPackage", "url"), String))
     end
-end
+end end
 
 @testset "Testing package utils" begin
     @test PkgDev.getrepohttpurl("https://github.com/JuliaLang/PkgDev.jl.git") == "https://github.com/JuliaLang/PkgDev.jl"

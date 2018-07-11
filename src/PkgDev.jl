@@ -11,10 +11,15 @@ include("github.jl")
 include("license.jl")
 include("generate.jl")
 
-#=
 # remove extension .jl
-const PKGEXT = ".jl"
-splitjl(pkg::AbstractString) = endswith(pkg, PKGEXT) ? pkg[1:end-length(PKGEXT)] : pkg
+splitjl(pkg::AbstractString) = endswith(pkg, ".jl") ? pkg[1:end-3] : pkg
+
+struct PkgDevError
+    msg::String
+end
+
+Base.show(io::IO, err::PkgDevError) = print(io, err.msg)
+#=
 
 """
     register(pkg, [url])
@@ -33,12 +38,6 @@ not provided, `commit` defaults to the current  commit of the `pkg` repo. If `ve
 the symbols `:patch`,  `:minor`, `:major` the next patch, minor or major version is used. If
 `ver` is not provided, it defaults to `:patch`.
 """
-tag(pkg::AbstractString, sym::Symbol=:patch) = cd(Entry.tag,splitjl(pkg),sym)
-tag(pkg::AbstractString, sym::Symbol, commit::AbstractString) = cd(Entry.tag,splitjl(pkg),sym,false,commit)
-
-tag(pkg::AbstractString, ver::VersionNumber; force::Bool=false) = cd(Entry.tag,splitjl(pkg),ver,force)
-tag(pkg::AbstractString, ver::VersionNumber, commit::AbstractString; force::Bool=false) =
-    cd(Entry.tag,splitjl(pkg),ver,force,commit)
 
 submit(pkg::AbstractString) = cd(Entry.submit, splitjl(pkg))
 submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,splitjl(pkg),commit)
@@ -60,23 +59,23 @@ publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), pr
 =#
 
 @doc raw"""
-    generate(pkg,license)
+    generate(pkg_path, license)
 
 Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"BSD"`,
 `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`,  `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to
 make a package with a  different license, you can edit it afterwards.
 
-Generate creates a git repo at `Pkg.dir(pkg)` for the package and  inside it `LICENSE.md`,
-`README.md`, `REQUIRE`, and the julia  entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
+Generate creates a git repo at `pkg_path` for the package and inside it `LICENSE.md`,
+`README.md`, `Project.toml`, and the julia  entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
 configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using
-Coveralls or Codecov are created by default, but each can be disabled  individually by
+Codecov is created by default, but each can be disabled  individually by
 setting `travis`, `appveyor` or `coverage` to `false`.
 """
 generate(pkg::AbstractString, license::AbstractString;
          force::Bool=false, authors::Union{AbstractString,Array} = [],
-         config::Dict=Dict(), path::AbstractString = Pkg.Dir.path(),
-         travis::Bool = true, appveyor::Bool = true, coverage::Bool = true) =
-    Generate.package(splitjl(pkg), license, force=force, authors=authors, config=config, path=path,
+         config::Dict=Dict(), travis::Bool = true, appveyor::Bool = true,
+         coverage::Bool = true) =
+    Generate.package(splitjl(pkg), license, force=force, authors=authors, config=config,
                      travis=travis, appveyor=appveyor, coverage=coverage)
 
 """
@@ -95,7 +94,7 @@ function config(force::Bool=false)
 
         username = LibGit2.get(cfg, "user.name", "")
         if isempty(username) || force
-            username = LibGit2.prompt("Enter user name", default=username)
+            username = Base.prompt("Enter user name", default=username)
             LibGit2.set!(cfg, "user.name", username)
         else
             println("User name: $username")
@@ -103,7 +102,7 @@ function config(force::Bool=false)
 
         useremail = LibGit2.get(cfg, "user.email", "")
         if isempty(useremail) || force
-            useremail = LibGit2.prompt("Enter user email", default=useremail)
+            useremail = Base.prompt("Enter user email", default=useremail)
             LibGit2.set!(cfg, "user.email", useremail)
         else
             println("User email: $useremail")
@@ -112,7 +111,7 @@ function config(force::Bool=false)
         # setup github account
         ghuser = LibGit2.get(cfg, "github.user", "")
         if isempty(ghuser) || force
-            ghuser = LibGit2.prompt("Enter GitHub user", default=(isempty(ghuser) ? username : ghuser))
+            ghuser = Base.prompt("Enter GitHub user", default=(isempty(ghuser) ? username : ghuser))
             LibGit2.set!(cfg, "github.user", ghuser)
         else
             println("GitHub user: $ghuser")
@@ -120,7 +119,7 @@ function config(force::Bool=false)
     finally
         finalize(cfg)
     end
-    lowercase(LibGit2.prompt("Do you want to change this configuration?", default="N")) == "y" && config(true)
+    lowercase(Base.prompt("Do you want to change this configuration?", default="N")) == "y" && config(true)
     return
 end
 
@@ -130,8 +129,8 @@ function __init__()
     try
         username = LibGit2.get(cfg, "user.name", "")
         if isempty(username)
-            Compat.@warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` " *
-                         "before performing any operations.")
+            @warn("PkgDev.jl is not configured. Please, run `PkgDev.config()` " *
+                  "before performing any operations.")
         end
     finally
         finalize(cfg)
