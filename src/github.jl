@@ -67,8 +67,8 @@ Creating a personal access token for Julia Package Manager on GitHub.
     if status == 401 && get(header, "X-GitHub-OTP", "") |> x->startswith(x, "required") && isinteractive()
         tfa = true
         Compat.@info("Two-factor authentication in use.  Enter auth code.  (You may have to re-enter your password.)")
-        print(STDERR, "Authentication code: ")
-        code = readline(STDIN) |> chomp
+        print(stderr, "Authentication code: ")
+        code = readline(stdin) |> chomp
         status, header, content = curl("https://api.github.com/authorizations",params,`-H "X-GitHub-OTP: $code" -u $user`)
     end
 

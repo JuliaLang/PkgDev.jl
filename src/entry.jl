@@ -317,7 +317,7 @@ function check_metadata(pkgs::Set{String} = Set{String}())
     return
 end
 
-function freeable(io::IO = STDOUT)
+function freeable(io::IO = stdout)
     function latest_tag(pkgname)
         avail = Pkg.Read.available(pkgname)
         k = sort(collect(keys(avail)))

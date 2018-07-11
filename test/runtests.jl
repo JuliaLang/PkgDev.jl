@@ -1,5 +1,5 @@
 using PkgDev
-using Compat, Compat.Test, Compat.Pkg, Compat.Random, Compat.LibGit2
+using Compat, Test, Compat.Pkg, Compat.Random, Compat.LibGit2
 
 function temp_pkg_dir(fn::Function, remove_tmp_dir::Bool=true)
     # Used in tests below to set up and tear down a sandboxed package directory
@@ -31,7 +31,7 @@ temp_pkg_dir() do pkgdir
         end
 
         open(Pkg.dir("PackageWithTestDependencies","test","runtests.jl"),"w") do f
-            println(f, "using " * (VERSION < v"0.7.0-DEV.2005" ? "Base." : "") * "Test")
+            println(f, "using " * (false ? "Base." : "") * "Test")
             if VERSION >= v"0.7.0-DEV.3656"
                 println(f, "using Pkg")
             end
@@ -81,7 +81,7 @@ temp_pkg_dir() do pkgdir
 
         isdir(Pkg.dir("PackageWithFailingTests","test")) || mkdir(Pkg.dir("PackageWithFailingTests","test"))
         open(Pkg.dir("PackageWithFailingTests", "test", "runtests.jl"),"w") do f
-            println(f, "using " * (VERSION < v"0.7.0-DEV.2005" ? "Base." : "") * "Test")
+            println(f, "using " * (false ? "Base." : "") * "Test")
             println(f, "@test false")
         end
 
@@ -94,7 +94,7 @@ temp_pkg_dir() do pkgdir
     end
 
     # FIXME coverage is currently broken on windows?
-    Compat.Sys.isunix() && @testset "testing with code-coverage" begin
+    Sys.isunix() && @testset "testing with code-coverage" begin
         PkgDev.generate("PackageWithCodeCoverage", "MIT", config=Dict("user.name"=>"Julia Test", "user.email"=>"test@julialang.org"))
 
         src = """
@@ -117,7 +117,7 @@ end"""
         isdir(Pkg.dir("PackageWithCodeCoverage","test")) || mkdir(Pkg.dir("PackageWithCodeCoverage","test"))
         open(Pkg.dir("PackageWithCodeCoverage", "test", "runtests.jl"),"w") do f
             println(f, "using PackageWithCodeCoverage")
-            println(f, "using " * (VERSION < v"0.7.0-DEV.2005" ? "Base." : "") * "Test")
+            println(f, "using " * (false ? "Base." : "") * "Test")
             println(f, "@test f2(2) == 4")
             println(f, "@test f3(5) == 15")
         end
