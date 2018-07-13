@@ -5,20 +5,21 @@ module PkgDev
 using LibGit2
 import Pkg
 
+struct PkgDevError
+    msg::String
+end
+
+Base.show(io::IO, err::PkgDevError) = print(io, err.msg)
+
+# remove extension .jl
+splitjl(pkg::AbstractString) = endswith(pkg, ".jl") ? pkg[1:end-3] : pkg
+
 include("utils.jl")
 include("github.jl")
 #include("entry.jl")
 include("license.jl")
 include("generate.jl")
 
-# remove extension .jl
-splitjl(pkg::AbstractString) = endswith(pkg, ".jl") ? pkg[1:end-3] : pkg
-
-struct PkgDevError
-    msg::String
-end
-
-Base.show(io::IO, err::PkgDevError) = print(io, err.msg)
 #=
 
 """

@@ -27,7 +27,7 @@ function pull_request(dir::AbstractString; commit::AbstractString="", url::Abstr
         owner, owner_repo = m.captures[2:3]
         user = GitHub.user()
         @info("Forking $owner/$owner_repo to $user")
-        response = GitHub.fork(owner,owner_repo)
+        response = GitHub.fork(owner, owner_repo)
         fork = response["clone_url"]
         @info("Pushing changes as branch $branch")
         refspecs = ["HEAD:refs/heads/$branch"]  # workaround for $commit:refs/heads/$branch
@@ -39,7 +39,6 @@ function pull_request(dir::AbstractString; commit::AbstractString="", url::Abstr
 end
 
 function submit(pkg::AbstractString, registry::AbstractString, commit::AbstractString="")
-
     urlpath = Pkg.dir("METADATA",pkg,"url")
     url = ispath(urlpath) ? readchomp(urlpath) : ""
     pull_request(PkgDev.dir(pkg), commit=commit, url=url)
