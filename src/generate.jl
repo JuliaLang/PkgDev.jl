@@ -469,6 +469,7 @@ function gitignore(pkg::AbstractString; force::Bool=false)
         *.jl.cov
         *.jl.*.cov
         *.jl.mem
+        /Manifest.toml
         """)
     end
 end
