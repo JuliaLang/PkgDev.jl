@@ -393,66 +393,46 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
 end
 
 function appveyor(pkg::AbstractString; force::Bool=false)
-    pkg_name = basename(pkg)
-    vf = versionfloor(VERSION)
-    if vf[end] == '-' # don't know what previous release was
-        vf = string(VERSION.major, '.', VERSION.minor)
-        rel32 = "#  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x86/$vf/julia-$vf-latest-win32.exe\""
-        rel64 = "#  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x64/$vf/julia-$vf-latest-win64.exe\""
-    else
-        rel32 = "  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x86/$vf/julia-$vf-latest-win32.exe\""
-        rel64 = "  - JULIA_URL: \"https://julialang-s3.julialang.org/bin/winnt/x64/$vf/julia-$vf-latest-win64.exe\""
+    """
+    environment:
+      matrix:
+      - julia_version: 0.6
+      - julia_version: 0.7
+      - julia_version: latest
+
+    platform:
+      - x86
+      - x64
+
+    ## uncomment the following lines to allow failures on nightly julia
+    ## (tests will run but not make your overall status red)
+    #matrix:
+    #  allow_failures:
+    #  - julia_version: latest
+
+    branches:
+      only:
+        - master
+        - /release-.*/
+
+    notifications:
+      - provider: Email
+        on_build_success: false
+        on_build_failure: false
+        on_build_status_changed: false
+
+    install:
+      - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/JuliaCI/Appveyor.jl/master/bin/install.ps1'))
+
+    build_script:
+      - echo "%JL_BUILD_SCRIPT%"
+      - julia -e "%JL_BUILD_SCRIPT%"
+
+    test_script:
+      - echo "%JL_TEST_SCRIPT%"
+      - julia -e "%JL_TEST_SCRIPT%"
     end
-    genfile(pkg, "appveyor.yml", force) do io
-        print(io, """
-        environment:
-          JULIA_PROJECT: "@."
-          matrix:
-        $rel32
-        $rel64
-          - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
-          - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
-
-        ## uncomment the following lines to allow failures on nightly julia
-        ## (tests will run but not make your overall status red)
-        #matrix:
-        #  allow_failures:
-        #  - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
-        #  - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
-
-        branches:
-          only:
-            - master
-            - /release-.*/
-
-        notifications:
-          - provider: Email
-            on_build_success: false
-            on_build_failure: false
-            on_build_status_changed: false
-
-        install:
-          - ps: "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12"
-        # If there's a newer build queued for the same PR, cancel this one
-          - ps: if (\$env:APPVEYOR_PULL_REQUEST_NUMBER -and \$env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
-                https://ci.appveyor.com/api/projects/\$env:APPVEYOR_ACCOUNT_NAME/\$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
-                Where-Object pullRequestId -eq \$env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
-                throw "There are newer queued builds for this pull request, failing early." }
-        # Download most recent Julia Windows binary
-          - ps: (new-object net.webclient).DownloadFile(
-                \$env:JULIA_URL,
-                "C:\\projects\\julia-binary.exe")
-        # Run installer silently, output to C:\\projects\\julia
-          - C:\\projects\\julia-binary.exe /S /D=C:\\projects\\julia
-
-        build_script:
-          - C:\\projects\\julia\\bin\\julia -e "import InteractiveUtils; versioninfo();
-              Pkg.build()"
-
-        test_script:
-          - C:\\projects\\julia\\bin\\julia -e "Pkg.test()"
-        """)
-    end
+    """
 end
 
 function codecov(pkg::AbstractString; force::Bool=false)
