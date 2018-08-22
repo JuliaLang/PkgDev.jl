@@ -16,23 +16,13 @@ splitjl(pkg::AbstractString) = endswith(pkg, ".jl") ? pkg[1:end-3] : pkg
 
 include("utils.jl")
 include("github.jl")
-#include("entry.jl")
+include("Registry.jl")
 include("license.jl")
 include("generate.jl")
 
-#=
 
 """
-    register(pkg, [url])
-
-Register `pkg` at the git URL `url`, defaulting to the configured  origin URL of the git
-repo `Pkg.dir(pkg)`.
-"""
-register(pkg::AbstractString) = Entry.register(splitjl(pkg))
-register(pkg::AbstractString, url::AbstractString) = Entry.register(splitjl(pkg),url)
-
-"""
-    tag(pkg, [ver, [commit]])
+    tag(pkgdir, [ver, [commit]])
 
 Tag `commit` as version `ver` of package `pkg` and create a version  entry in `METADATA`. If
 not provided, `commit` defaults to the current  commit of the `pkg` repo. If `ver` is one of
@@ -40,9 +30,10 @@ the symbols `:patch`,  `:minor`, `:major` the next patch, minor or major version
 `ver` is not provided, it defaults to `:patch`.
 """
 
-submit(pkg::AbstractString) = cd(Entry.submit, splitjl(pkg))
-submit(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,splitjl(pkg),commit)
+tag(pkg::AbstractString) = cd(Entry.submit, splitjl(pkg))
+itag(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,splitjl(pkg),commit)
 
+#=
 """
     publish()
 

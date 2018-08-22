@@ -193,16 +193,7 @@ function tests(pkg::AbstractString; force::Bool=false)
 end
 
 function versionfloor(ver::VersionNumber)
-    # return "major.minor" for the most recent release version relative to ver
-    # for prereleases with ver.minor == ver.patch == 0, return "major-" since we
-    # don't know what the most recent minor version is for the previous major
-    if isempty(ver.prerelease) || ver.patch > 0
-        return string(ver.major, '.', ver.minor)
-    elseif ver.minor > 0
-        return string(ver.major, '.', max(ver.minor - 1, 7))
-    else
-        return string(ver.major)
-    end
+    return string(ver.major, ".", ver.minor)
 end
 
 function create_project_from_require(path::String, authors; force::Bool=false)
@@ -330,10 +321,11 @@ function project(pkg::AbstractString, authors::Union{NamedTuple{(:name, :email),
         uuid = UUIDs.uuid1()
     end
 
+    pkgname = basename(pkg)
     genfile(pkg, projname, force) do io
         print(io, """
         authors = [$authors_str]
-        name = "$pkg"
+        name = "$pkgname"
         uuid = "$uuid"
         version = "0.1.0"
 
@@ -341,6 +333,12 @@ function project(pkg::AbstractString, authors::Union{NamedTuple{(:name, :email),
 
         [compat]
         julia = "$(versionfloor(VERSION))"
+
+        [extras]
+        Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+        [targets]
+        test = ["Test"]
         """)
     end
 end
@@ -368,11 +366,10 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
         notifications:
           email: false
 
-        ## uncomment the following lines to allow failures on nightly julia
-        ## (tests will run but not make your overall status red)
-        #matrix:
-        #  allow_failures:
-        #  - julia: nightly
+        # comment the following lines to disallow failures on nightly julia
+        matrix:
+          allow_failures:
+          - julia: nightly
 
         ## uncomment and modify the following lines to manually install system packages
         #addons:
@@ -384,10 +381,11 @@ function travis(pkg::AbstractString; force::Bool=false, coverage::Bool=true)
 
         ## uncomment the following lines to override the default test script
         #script:
-        #  - julia -e 'Pkg.build(); Pkg.test(; coverage=true)'
+        #  - julia -e 'import Pkg; Pkg.build(); Pkg.test(; coverage=true)'
+
         $(c)after_success:
         $(c)  # push coverage results to Codecov
-        $(c)  - julia -e 'Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+        $(c)  - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
         """)
     end
 end
@@ -396,19 +394,17 @@ function appveyor(pkg::AbstractString; force::Bool=false)
     """
     environment:
       matrix:
-      - julia_version: 0.6
-      - julia_version: 0.7
+      - julia_version: 1.0
       - julia_version: latest
 
     platform:
       - x86
       - x64
 
-    ## uncomment the following lines to allow failures on nightly julia
-    ## (tests will run but not make your overall status red)
-    #matrix:
-    #  allow_failures:
-    #  - julia_version: latest
+    # comment the following lines to disallow failures on nightly julia
+    matrix:
+      allow_failures:
+      - julia_version: latest
 
     branches:
       only:
