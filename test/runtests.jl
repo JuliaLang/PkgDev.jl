@@ -1,7 +1,7 @@
 using PkgDev
 using Test, Pkg, Random, LibGit2
 
-# include("generate.jl")
+include("generate.jl")
 include("registry.jl")
 
 #=

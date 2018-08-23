@@ -131,7 +131,6 @@ function collect_package_info(pkgpath::String)
     deps = Dict{UUID, VersionSpec}()
     deps[JULIA_UUID] = VersionSpec() # every package depends on julia
     for (pkg, dep_uuid) in project["deps"]
-        @show pkg, dep_uuid
         name_uuid[pkg] = UUID(dep_uuid)
         deps[UUID(dep_uuid)] = VersionSpec()
     end
@@ -204,7 +203,6 @@ function register(registry::String, pkg::PackageReg)
 
         ctx = Context()
         for (uuid, v) in pkg.deps
-            @show uuid
             if !(is_stdlib(ctx, uuid) || string(uuid) in keys(registry_packages) || uuid == JULIA_UUID)
                 pkgerror("dependency with uuid $(uuid) not an stdlib nor registered package")
             end
@@ -253,10 +251,11 @@ function register(registry::String, pkg::PackageReg)
 
         function write_version_data(f::String, d::Dict)
             write_toml(f) do io
-                for (i, (ver, v)) in enumerate(sort!(collect(d), by=first))
+                for (i, (ver, v)) in enumerate(sort!(collect(d), lt = Pkg.Types.isless_ll,
+                                                                 by=x->first(x).lower))
                     i > 1 && println(io)
                     println(io, "[", toml_key(string(ver)), "]")
-                    for (key, val) in sort!(collect(v))
+                    for (key, val) in collect(v) # TODO sort?
                         println(io, key, " = \"$val\"")
                     end
                 end

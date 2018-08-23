@@ -1,3 +1,11 @@
+module TestGenerate
+
+using Test
+using PkgDev
+using Pkg
+
+include("utils.jl")
+
 temp_pkg_dir() do tmp; cd(tmp) do
     @testset "generating a package with .jl extension" begin
         pkg = "PackageWithExtension"
@@ -10,3 +18,5 @@ temp_pkg_dir() do tmp; cd(tmp) do
         Pkg.test("PackageWithExtension")
     end
 end end
+
+end

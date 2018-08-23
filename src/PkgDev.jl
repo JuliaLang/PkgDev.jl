@@ -22,12 +22,10 @@ include("generate.jl")
 
 
 """
-    tag(pkgdir, [ver, [commit]])
+    register(pkgdir, [ver, [commit]])
 
 Tag `commit` as version `ver` of package `pkg` and create a version  entry in `METADATA`. If
-not provided, `commit` defaults to the current  commit of the `pkg` repo. If `ver` is one of
-the symbols `:patch`,  `:minor`, `:major` the next patch, minor or major version is used. If
-`ver` is not provided, it defaults to `:patch`.
+not provided, `commit` defaults to the current  commit of the `pkg` repo. 
 """
 
 tag(pkg::AbstractString) = cd(Entry.submit, splitjl(pkg))
@@ -51,7 +49,7 @@ publish(prbranch::AbstractString="") = Entry.publish(Pkg.Dir.getmetabranch(), pr
 =#
 
 @doc raw"""
-    generate(pkg_path, license)
+    generate(pkgdir, license)
 
 Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"BSD"`,
 `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`,  `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to
