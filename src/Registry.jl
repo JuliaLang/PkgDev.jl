@@ -75,7 +75,7 @@ end
 struct PackageReg
     uuid::UUID
     name::String
-    url::String
+    url::Union{String, Nothing}
     version::VersionNumber
     git_tree_sha::SHA1
     deps::Dict{UUID, VersionSpec}
@@ -83,9 +83,8 @@ end
 
 const JULIA_UUID = UUID("1222c4b2-2114-5bfd-aeef-88e4692bbb3e")
 
-function collect_package_info(pkgpath::String)
+function collect_package_info(pkgpath::String; url, commit)
     pkgpath = abspath(pkgpath)
-    local git_tree_sha
     if !isdir(pkgpath)
         pkgerror("directory $(repr(pkgpath)) not found")
     end
@@ -96,24 +95,27 @@ function collect_package_info(pkgpath::String)
     if project_file === nothing
         pkgerror("package needs a \"[Julia]Project.toml\" file")
     end
+    local git_tree_sha
     LibGit2.with(LibGit2.GitRepo(pkgpath)) do repo
-        if LibGit2.isdirty(repo)
-            pkgerror("git repo at $(repr(pkgpath)) is dirty")
+        if commit == nothing
+            if LibGit2.isdirty(repo)
+                pkgerror("git repo at $(repr(pkgpath)) is dirty")
+            end
+            commit = LibGit2.head(repo)
         end
-        head = LibGit2.head(repo)
         git_tree_sha = begin
-            LibGit2.with(LibGit2.peel(LibGit2.GitTree, head)) do tree
+            LibGit2.with(LibGit2.peel(LibGit2.GitTree, commit)) do tree
                 SHA1(string(LibGit2.GitHash(tree)))
             end
         end
     end
-    url = ""
-    try
-        url = LibGit2.getconfig(pkgpath, "remote.origin.url", "")
-    catch err
-        pkgerror("$pkg: $err")
+    if url === nothing
+        try
+            url = LibGit2.getconfig(pkgpath, "remote.origin.url", "")
+        catch err
+            pkgerror("$pkg: $err")
+        end
     end
-    isempty(url) && pkgerror("$pkgpath: no URL configured")
 
     f = project_file
     entry = joinpath(dirname(f), "src", "ads.jl")
@@ -157,8 +159,12 @@ function collect_package_info(pkgpath::String)
     )
 end
 
-register(registry::String, pkgpath) = register(registry, collect_package_info(pkgpath))
-function register(registry::String, pkg::PackageReg)
+register(registry::String, pkgpath; commit, url) =
+    register(registry, collect_package_info(pkgpath; url=url, commit=commit); registering_new=true)
+tag(registry::String, pkgpath; commit) =
+    register(registry, collect_package_info(pkgpath; url=nothing, commit=commit); registering_new=false)
+
+function register(registry::String, pkg::PackageReg; registering_new::Bool)
     !isdir(registry) && error(abspath(registry), " does not exist")
     registry_main_file = joinpath(registry, "Registry.toml")
     !isfile(registry_main_file) && error(abspath(registry_main_file), " does not exist")
@@ -167,11 +173,13 @@ function register(registry::String, pkg::PackageReg)
     registry_packages = get(registry_data, "packages", Dict{String, Any}())
 
     bin = string(first(pkg.name))
+
     if haskey(registry_packages, string(pkg.uuid))
-        registering_new = false
-        reldir = registry_packages[string(pkg.uuid)]["path"]
+       registering_new == false || pkgerror("package $(pkg.name) with uuid $(pkg.uuid) already registered")
+       reldir = registry_packages[string(pkg.uuid)]["path"]
     else
-        registering_new = true
+        registering_new == true || pkgerror("package $(pkg.name) with uuid $(pkg.uuid) not registered")
+        pkg.url === nothing && pkgerror("no URL configured for package")
         binpath = joinpath(registry, bin)
         mkpath(binpath)
         # store the package in $name__$i where i is the no. of pkgs with the same name

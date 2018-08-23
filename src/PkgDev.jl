@@ -21,15 +21,29 @@ include("license.jl")
 include("generate.jl")
 
 
-"""
-    register(pkgdir, [ver, [commit]])
+defaut_reg = joinpath(Pkg.depots1(), "registries", "General")
 
-Tag `commit` as version `ver` of package `pkg` and create a version  entry in `METADATA`. If
-not provided, `commit` defaults to the current  commit of the `pkg` repo. 
 """
+    register(pkgdir; [commit, registry, url])
 
-tag(pkg::AbstractString) = cd(Entry.submit, splitjl(pkg))
-itag(pkg::AbstractString, commit::AbstractString) = cd(Entry.submit,splitjl(pkg),commit)
+Register package at `pkgdir` at `commit` into the registry at `registry`. If
+not provided, `commit` defaults to the current commit of the `pkg` repo,
+`registry` defaults to the General registry and `url` defaults to the url of the
+`origin` remote.
+"""
+register(pkgdir::AbstractString; commit=nothing, registry=default_reg(), url=nothing ) =
+    Registry.register(registry, pkgdir; commit=commit, url=url)
+
+"""
+    tag(pkgdir; [commit, registry])
+
+Tag `commit` of package at `pkgdir` into the registry at `registry`. If
+not provided, `commit` defaults to the current commit of the `pkg` repo
+and `registry` defaults to the General registry.
+"""
+tag(pkgdir::AbstractString; commit = nothing, registry=default_reg()) =
+    Registry.tag(registry, pkgdir; commit=commit)
+
 
 #=
 """
@@ -55,10 +69,10 @@ Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"B
 `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`,  `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to
 make a package with a  different license, you can edit it afterwards.
 
-Generate creates a git repo at `pkg_path` for the package and inside it `LICENSE.md`,
-`README.md`, `Project.toml`, and the julia  entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
+Generate creates a git repo at `pkgdir` for the package and inside it `LICENSE.md`,
+`README.md`, `Project.toml`, and the julia entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
 configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using
-Codecov is created by default, but each can be disabled  individually by
+Codecov is created by default, but each can be disabled individually by
 setting `travis`, `appveyor` or `coverage` to `false`.
 """
 generate(pkg::AbstractString, license::AbstractString;

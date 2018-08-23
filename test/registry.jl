@@ -17,14 +17,13 @@ temp_pkg_dir() do project_path; cd(project_path) do
     pkgs = mktempdir()
     pkgdir = joinpath(pkgs, "TheFirst")
     PkgDev.generate(pkgdir, "MIT")
-    # for testing
     cd(pkgdir) do
         run(`git remote remove origin`)
         run(`git remote add origin $pkgdir`)
     end
-    PkgDev.Registry.register(registry_path, joinpath(pkgs, "TheFirst"))
+    PkgDev.register(joinpath(pkgs, "TheFirst"); registry=registry_path)
     # Version already installed
-    @test_throws PkgError PkgDev.Registry.register(registry_path, joinpath(pkgs, "TheFirst"))
+    @test_throws PkgError PkgDev.register(joinpath(pkgs, "TheFirst"); registry=registry_path)
     Pkg.add("TheFirst")
     @test Pkg.installed()["TheFirst"] == v"0.1.0"
      # Add an stdlib dep and update it to v0.2.0
@@ -36,7 +35,7 @@ temp_pkg_dir() do project_path; cd(project_path) do
         LibGit2.commit(repo, "tag v0.2.0")
     end
     Pkg.activate()
-    PkgDev.Registry.register(registry_path, joinpath(pkgs, "TheFirst"))
+    PkgDev.tag(joinpath(pkgs, "TheFirst"); registry=registry_path)
     Pkg.update()
     @test Pkg.installed()["TheFirst"] == v"0.2.0"
     Pkg.rm("TheFirst")
@@ -46,7 +45,6 @@ temp_pkg_dir() do project_path; cd(project_path) do
      # Add a new package that depends on TheFirst
     pkgdir = joinpath(pkgs, "TheSecond")
     PkgDev.generate(pkgdir, "MIT")
-    # for testing
     cd(pkgdir) do
         run(`git remote remove origin`)
         run(`git remote add origin $pkgdir`)
@@ -66,7 +64,7 @@ temp_pkg_dir() do project_path; cd(project_path) do
         LibGit2.commit(repo, "tag v0.1.0")
     end
     Pkg.activate()
-    PkgDev.Registry.register(registry_path, joinpath(pkgs, "TheSecond"))
+    PkgDev.register(joinpath(pkgs, "TheSecond"); registry=registry_path, url=pkgdir)
     Pkg.add("TheSecond")
     @test Pkg.installed()["TheSecond"] == v"0.1.0"
     @test Pkg.API.__installed(PKGMODE_MANIFEST)["TheFirst"] == v"0.1.0"

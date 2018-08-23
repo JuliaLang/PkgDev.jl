@@ -12,10 +12,10 @@ For closer integration with GitHub API, PkgDev.jl requires `curl` to be installe
 
 ### `generate(pkgdir, license)`
 
-Generate a new package named `pkg` with one of the bundled license: `"MIT"`, `"BSD"`, `CC0`, `"ISC"`, `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`, `"LGPL-2.1+"`, `"LGPL-3.0+"`.
-If you want to make a package with a different license, you can edit it afterwards. Generate creates a git repository at `pkgdir` for the package and inside it `LICENSE.md`, `README.md`, `Project.toml`, the julia entrypoint `$pkg/src/$pkg.jl`, and Travis and AppVeyor CI configuration files `.travis.yml` and `appveyor.yml`.
+Generate a new package named `dirname(pkgdir)` at `pkgdir`  with one of the bundled license: `"MIT"`, `"BSD"`, `CC0`, `"ISC"`, `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`, `"LGPL-2.1+"`, `"LGPL-3.0+"`.
+If you want to make a package with a different license, you can edit it afterwards. `generate` creates a git repository at `pkgdir` for the package and inside it `LICENSE.md`, `README.md`, `Project.toml`, the julia entrypoint `$pkg/src/$pkg.jl`, and Travis and AppVeyor CI configuration files `.travis.yml` and `appveyor.yml`.
 
-> *Warning*: If you release code for Package X under the GPL, you may discourage collaboration from members of the Julia community who work on non-GPL packages. For example, if a user works on Package Y, which is licensed under the MIT license that is used in many community projects, other developers might not feel safe to read the code you contribute to Package Y because any indication that their work is derivative could lead to litigation. In effect, you create a situation in which your source code is percieved as being closed to anyone who is working on a non-GPL project.
+> *Warning*: If you release code for under the GPL, you may discourage collaboration from members of the Julia community who work on non-GPL packages. For example, if a user works on Package Y, which is licensed under the MIT license that is used in many community projects, other developers might not feel safe to read the code you contribute to Package Y because any indication that their work is derivative could lead to litigation. In effect, you create a situation in which your source code is percieved as being closed to anyone who is working on a non-GPL project.
 
 Keyword parameters:
 
@@ -23,9 +23,13 @@ Keyword parameters:
 * `appveyor` - enables generation of the `appveyor.yml` configuration for [Appveyor](http://www.appveyor.com/) service, the default value is `true`.
 * `coverage` - enables generation of a code coverage reporting to [Codecov](https://codecov.io) services, default value is `true`.
 
-### `tag(pkgdir, registry, [url])`
+### `register(pkgdir, [registry]; [url])
 
-Register or tag the package at `pkgdir` at the git URL `url` to the registry at `registry`, defaulting to the configured origin URL of the git repository at `pkgdir`. The `registry` defaults to the General registry, typically located at `~/.julia/registries/General`.
+Register the package at `pkgdir` at the git URL `url` to the registry at `registry`, defaulting to the configured origin URL of the git repository at `pkgdir`. The `registry` defaults to the General registry, typically located at `~/.julia/registries/General`.
+
+### `tag(pkgdir, [registry])`
+
+Tag the package at `pkgdir` to the registry at `registry`, defaulting to the configured origin URL of the git repository at `pkgdir`. The `registry` defaults to the General registry, typically located at `~/.julia/registries/General`.
 The version used is the `version` entry in the package's project file (typically `Project.toml`).
 
 You are strongly encouraged to update the version numbers in accordance with the [semver standard](http://semver.org/):
