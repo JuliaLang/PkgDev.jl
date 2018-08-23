@@ -196,13 +196,13 @@ function versionfloor(ver::VersionNumber)
     return string(ver.major, ".", ver.minor)
 end
 
-function create_project_from_require(path::String, authors; force::Bool=false)
+function create_project_from_require(path::String, force::Bool=false)
     ctx = Context()
 
     # Package data
     path = abspath(path)
     m = match(Pkg.Types.reg_pkg, path)
-    m === nothing && cmderror("cannot determine package name from URL: $(path)")
+    m === nothing && cmderror("cannot determine package name from path: $(path)")
     pkgname = m.captures[1]
 
     mainpkg = PackageSpec(pkgname)
@@ -279,12 +279,8 @@ function create_project_from_require(path::String, authors; force::Bool=false)
     end
 
     if !isempty(test_pkgs)
-        project["targets"] =
-            Dict("test" =>
-                Dict("deps" =>
-                    Dict(pkg.name => string(pkg.uuid) for pkg in test_pkgs)
-                )
-            )
+        project["extras"] = Dict(pkg.name => string(pkg.uuid) for pkg in test_pkgs)
+        project["targets"] = Dict("test" => [pkg.name for pkg in test_pkgs])
     end
 
     genfile(path, "Project.toml", force) do io
@@ -294,7 +290,7 @@ end
 
 function project(pkg::AbstractString, authors::Union{NamedTuple{(:name, :email),Tuple{String,String}}, Array}=""; force::Bool=false)
     if isfile(joinpath(pkg, "REQUIRE"))
-        return create_project_from_require(pkg, authors; force=force)
+        return create_project_from_require(pkg, force=force)
     end
     authors isa NamedTuple && (authors = [authors])
     authors_str = join([string("\"", author_str(author), "\"") for author in authors], ",")

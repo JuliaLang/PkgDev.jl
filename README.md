@@ -10,6 +10,12 @@ For closer integration with GitHub API, PkgDev.jl requires `curl` to be installe
 
 ## Usage
 
+### Generating a `Project.toml` based on `REQUIRE`
+
+In julia 0.7 and later, the file used to describe the dependnecies of a package was changed from a file
+called `REQUIRE` to `Project.toml`. Use `PkgDev.add_project(pkgdir)` to add add a `Project.toml` file based on
+the `REQUIRE` file. 
+
 ### `generate(pkgdir, license)`
 
 Generate a new package named `dirname(pkgdir)` at `pkgdir`  with one of the bundled license: `"MIT"`, `"BSD"`, `CC0`, `"ISC"`, `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`, `"LGPL-2.1+"`, `"LGPL-3.0+"`.
@@ -23,13 +29,16 @@ Keyword parameters:
 * `appveyor` - enables generation of the `appveyor.yml` configuration for [Appveyor](http://www.appveyor.com/) service, the default value is `true`.
 * `coverage` - enables generation of a code coverage reporting to [Codecov](https://codecov.io) services, default value is `true`.
 
-### `register(pkgdir, [registry]; [url])
+### `register(pkgdir; [commit, registry, url])
 
-Register the package at `pkgdir` at the git URL `url` to the registry at `registry`, defaulting to the configured origin URL of the git repository at `pkgdir`. The `registry` defaults to the General registry, typically located at `~/.julia/registries/General`.
+Register the package at `pkgdir` at the git URL `url` to the registry at `registry` at `commit`,
+defaulting to the configured origin URL of the git repository at `pkgdir`.
+The `registry` defaults to the General registry, typically located at `~/.julia/registries/General` and
+`commit` defaults to the current commit of the repo.
 
-### `tag(pkgdir, [registry])`
+### `tag(pkgdir; [commit, registry])`
 
-Tag the package at `pkgdir` to the registry at `registry`, defaulting to the configured origin URL of the git repository at `pkgdir`. The `registry` defaults to the General registry, typically located at `~/.julia/registries/General`.
+Tag the package at `pkgdir` on `commit` to the registry at `registry`, defaulting to the configured origin URL of the git repository at `pkgdir`. The `registry` defaults to the General registry, typically located at `~/.julia/registries/General` and `commit` defaults to the current commit of the repo.
 The version used is the `version` entry in the package's project file (typically `Project.toml`).
 
 You are strongly encouraged to update the version numbers in accordance with the [semver standard](http://semver.org/):

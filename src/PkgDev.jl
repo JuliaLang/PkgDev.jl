@@ -20,6 +20,7 @@ include("Registry.jl")
 include("license.jl")
 include("generate.jl")
 
+add_project(pkgdir::String) = Generate.create_project_from_require(pkgdir)
 
 defaut_reg = joinpath(Pkg.depots1(), "registries", "General")
 
