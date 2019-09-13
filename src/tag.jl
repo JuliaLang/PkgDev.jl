@@ -19,7 +19,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
             reg_data = Pkg.Types.read_registry(joinpath(reg_spec.path, "Registry.toml"))
 
             if haskey(reg_data["packages"], string(pkg_uuid))
-                push!(registries_that_contain_the_package, reg_data)
+                push!(registries_that_contain_the_package, reg_spec)
             end
         end
 
@@ -28,7 +28,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
         elseif length(registries_that_contain_the_package)>1
             error("Package is registered in more than on registry, please specify in which you want to register the tag.")
         else
-            (registries_that_contain_the_package[1].url, registries_that_contain_the_package[1]["uuid"])
+            (registries_that_contain_the_package[1].url, registries_that_contain_the_package[1].uuid)
         end
     else
         relevant_registry = findfirst(i->i.name==registry, all_registries)
