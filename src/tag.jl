@@ -1,4 +1,4 @@
-function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,Nothing}=nothing, registry::Union{AbstractString,Nothing}=nothing)
+function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,Nothing}=nothing; registry::Union{AbstractString,Nothing}=nothing)
     general_reg_url = "https://github.com/JuliaRegistries/General"
 
     github_username = LibGit2.getconfig("github.user", "")
@@ -28,19 +28,20 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
         elseif length(registries_that_contain_the_package)>1
             error("Package is registered in more than on registry, please specify in which you want to register the tag.")
         else
-            (registries_that_contain_the_package[1]["repo"], registries_that_contain_the_package[1]["uuid"])
+            (registries_that_contain_the_package[1].url, registries_that_contain_the_package[1]["uuid"])
         end
     else
-        relevant_registry = findfirst(i->i["name"]==registry, all_registries)
+        relevant_registry = findfirst(i->i.name==registry, all_registries)
 
         relevant_registry===nothing && error("The registry $registry does not exist.")
 
-        (all_registries[relevant_registry]["repo"], all_registries[relevant_registry]["uuid"])
+        (all_registries[relevant_registry].url, all_registries[relevant_registry].uuid)
     end
 
     creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
 
     myauth = GitHub.authenticate(read(creds.password, String))
+    Base.shred!(creds.password)
 
     registry_github_owner_repo_name = private_reg_url===nothing ? "JuliaRegistries/General" : splitext(URI(private_reg_url).path)[1][2:end]
 
@@ -125,15 +126,16 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
     LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
     LibGit2.commit(pkg_repo, "Set version to v$next_version")
 
+    # TODO We get an error here with private repos, but then everything continues
     LibGit2.push(pkg_repo, refspecs=["refs/heads/$name_of_release_branch"])
-
+    
     LibGit2.branch!(pkg_repo, name_of_old_branch_in_pkg)
 
     LibGit2.delete_branch(LibGit2.lookup_branch(pkg_repo, name_of_release_branch))
 
     pkg_owner_repo_name = splitext(URI(pkg_url).path)[1][2:end]
 
-    gh_pkg_repo = GitHub.repo(pkg_owner_repo_name)
+    gh_pkg_repo = GitHub.repo(pkg_owner_repo_name, auth=myauth)
 
     GitHub.create_pull_request(gh_pkg_repo, auth=myauth, params=Dict(:title=>"New version: v$version_to_be_tagged", :head=>name_of_release_branch, :base=>name_of_old_branch_in_pkg, :body=>""))
 
@@ -144,7 +146,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
                 folder_for_registry = joinpath(tmp_path, "registries", "23338594-aafe-5451-b93e-139f81909106")
                 Registrator.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=general_reg_url, push=false)
             else
-                folder_for_registry = joinpath(tmp_path, "registries", private_reg_uuid)
+                folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
                 Registrator.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
             end
 
