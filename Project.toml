@@ -14,7 +14,7 @@ GitHub = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
 julia = "1"
 JSON = "0.21"
 URIParser = "0.4"
-Registrator = "0.1"
+Registrator = "1"
 GitHub = "5.1.1"
 
 [extras]
