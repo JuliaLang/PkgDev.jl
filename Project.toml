@@ -1,0 +1,24 @@
+name = "PkgDev"
+uuid = "149e707d-584d-56d3-88ec-740c18e106ff"
+version = "0.3.0-DEV"
+
+[deps]
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+URIParser = "30578b45-9adc-5946-b283-645ec420af67"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
+Registrator = "4418983a-e44d-11e8-3aec-9789530b3b3e"
+GitHub = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
+
+[compat]
+julia = "1"
+JSON = "0.21"
+URIParser = "0.4"
+Registrator = "1"
+GitHub = "5.1.1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

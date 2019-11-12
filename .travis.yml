@@ -3,14 +3,19 @@ os:
   - linux
   - osx
 julia:
-  - 0.6
+  - 1.0
+  - 1.1
+  - 1.2
   - nightly
 notifications:
   email: false
-git:
-  depth: 999999
-#script: # use the default script which is equivalent to the following
-# - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-# - julia -e 'Pkg.clone(pwd()); Pkg.build("PkgDev"); Pkg.test("PkgDev"; coverage=true)'
+branches:
+  only:
+  - master
+  - /release-.*/
+  - /v(\d+)\.(\d+)\.(\d+)/
+matrix:
+  allow_failures:
+  - julia: nightly
 after_success:
-  - julia -e 'cd(Pkg.dir("PkgDev")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("PkgDev")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
