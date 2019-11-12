@@ -129,9 +129,8 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
         LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
         LibGit2.commit(pkg_repo, "Set version to v$next_version")
 
-        # TODO We get an error here with private repos, but then everything continues
-        LibGit2.push(pkg_repo, refspecs=["refs/heads/$name_of_release_branch"])
-        
+        run(Cmd(`git push origin refs/heads/$name_of_release_branch`, dir=pkg_path))
+
         LibGit2.branch!(pkg_repo, name_of_old_branch_in_pkg)
 
         LibGit2.delete_branch(LibGit2.lookup_branch(pkg_repo, name_of_release_branch))
@@ -155,11 +154,11 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
 
                 registry_repo = GitRepo(folder_for_registry)
                 try
-                    LibGit2.push(registry_repo, remoteurl=registry_fork_url, refspecs=["refs/heads/$(regbranch.branch)"])
+                    run(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry))
                 finally
                     close(registry_repo)
-                end 
-                
+                end
+
                 GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>""))
             end
         end
