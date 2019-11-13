@@ -1,6 +1,6 @@
 module PkgDev
 
-using Pkg, LibGit2, Registrator, URIParser
+using Pkg, LibGit2, RegistryTools, URIParser
 import GitHub
 
 include("utils.jl")

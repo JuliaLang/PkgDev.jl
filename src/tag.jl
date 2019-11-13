@@ -146,10 +146,10 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
                 folder_for_registry = nothing
                 regbranch = if private_reg_url===nothing
                     folder_for_registry = joinpath(tmp_path, "registries", "23338594-aafe-5451-b93e-139f81909106")
-                    Registrator.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=general_reg_url, push=false)
+                    RegistryTools.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=general_reg_url, push=false)
                 else
                     folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
-                    Registrator.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
+                    RegistryTools.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
                 end
 
                 registry_repo = GitRepo(folder_for_registry)
