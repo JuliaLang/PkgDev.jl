@@ -22,3 +22,7 @@ The only situation where you would specify a value for `registry` is when you wa
 3. Change the version field in `Project.toml` to `x.y.z+1-DEV` and commit that change also to the release branch
 4. Open a pull request against the registry that tags the first new commit on the release branch as a new version `x.y.z`
 5. Open a pull request against the package repository to merge the release branch into `master`
+
+### PkgDev.enable_pkgbutler(pkg_name)
+
+Enables the Julia Package Butler for package `pkg`. The package must be deved in the current Julia environment. The command will make various modifications to the files in the deved folder of the package. You then then need to commit these changes and push them to github. NOTE: we still need to add the ability to setup the right deploy tokens in the package repository before this function will function entirely smoothly.
