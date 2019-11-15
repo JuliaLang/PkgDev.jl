@@ -9,6 +9,7 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 Registrator = "4418983a-e44d-11e8-3aec-9789530b3b3e"
 GitHub = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
+PkgButlerEngine = "5c9c0fc8-7103-448b-bb0a-c427020e3b0b"
 
 [compat]
 julia = "1"
@@ -16,6 +17,7 @@ JSON = "0.21"
 URIParser = "0.4"
 Registrator = "1"
 GitHub = "5.1.1"
+PkgButlerEngine = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
