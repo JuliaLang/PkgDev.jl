@@ -21,4 +21,10 @@ function configure_deploykey()
 
         return pub_deploykey, private_deploykey
     end
+
+    creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
+
+    # TODO Check for creds===nothing if there are no credentials stored
+    myauth = GitHub.authenticate(read(creds.password, String))
+    Base.shred!(creds.password)
 end
