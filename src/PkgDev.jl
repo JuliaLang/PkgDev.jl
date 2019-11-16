@@ -10,6 +10,7 @@ include("utils.jl")
 include("license.jl")
 # include("generate.jl")
 include("tag.jl")
+include("pkgbutler.jl")
 
 # remove extension .jl
 const PKGEXT = ".jl"

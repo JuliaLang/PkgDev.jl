@@ -7,3 +7,18 @@ function enable_pkgbutler(package_name::AbstractString)
 
     PkgButlerEngine.update_pkg(pkg_path)
 end
+
+function configure_deploykey()
+    pub_deploykey, private_deploykey = mktempdir() do f
+        p = joinpath(f, "deploykey")
+        run(`ssh-keygen -q -t rsa -f $p -N ''`)
+
+        pub_deploykey = read("$p.pub", String)
+        private_deploykey = read(p, String)
+
+        rm(p, force=true)
+        rm("$p.pub", force=true)
+
+        return pub_deploykey, private_deploykey
+    end
+end
