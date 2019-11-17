@@ -165,4 +165,6 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
     finally
         close(pkg_repo)
     end
+
+    return nothing
 end
