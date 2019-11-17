@@ -5,54 +5,12 @@ import GitHub
 import PkgButlerEngine
 import Base64
 
-include("utils.jl")
-# include("github.jl")
-# include("entry.jl")
-include("license.jl")
-# include("generate.jl")
 include("tag.jl")
 include("pkgbutler.jl")
 
 # remove extension .jl
 const PKGEXT = ".jl"
 splitjl(pkg::AbstractString) = endswith(pkg, PKGEXT) ? pkg[1:end-length(PKGEXT)] : pkg
-
-"""
-    dir(pkg, [paths...])
-
-Return package `pkg` directory location through search. Additional `paths` are appended.
-"""
-function dir(pkg::AbstractString)
-    pkg = splitjl(pkg)
-    if isdefined(Base, :find_in_path)
-        pkgsrc = Base.find_in_path(pkg, Pkg.dir())
-    else
-        pkgsrc = Base.find_package(pkg)
-    end
-    pkgsrc === nothing && return ""
-    abspath(dirname(pkgsrc), "..") |> realpath
-end
-dir(pkg::AbstractString, args...) = normpath(dir(pkg),args...)
-
-# """
-#     generate(pkg,license)
-
-# Generate a new package named `pkg` with one of these license keys:  `"MIT"`, `"BSD"`,
-# `"ASL"`, `"MPL"`, `"GPL-2.0+"`, `"GPL-3.0+"`,  `"LGPL-2.1+"`, `"LGPL-3.0+"`. If you want to
-# make a package with a  different license, you can edit it afterwards.
-
-# Generate creates a git repo at `Pkg.dir(pkg)` for the package and  inside it `LICENSE.md`,
-# `README.md`, `REQUIRE`, and the julia  entrypoint `$pkg/src/$pkg.jl`. Travis, AppVeyor CI
-# configuration files `.travis.yml` and `appveyor.yml` with code coverage statistics using
-# Coveralls or Codecov are created by default, but each can be disabled  individually by
-# setting `travis`, `appveyor` or `coverage` to `false`.
-# """
-# generate(pkg::AbstractString, license::AbstractString;
-#          force::Bool=false, authors::Union{AbstractString,Array} = [],
-#          config::Dict=Dict(), path::AbstractString = Pkg.Dir.path(),
-#          travis::Bool = true, appveyor::Bool = true, coverage::Bool = true) =
-#     Generate.package(splitjl(pkg), license, force=force, authors=authors, config=config, path=path,
-#                      travis=travis, appveyor=appveyor, coverage=coverage)
 
 """
     config()
