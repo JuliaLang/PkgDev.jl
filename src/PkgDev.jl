@@ -3,6 +3,7 @@ module PkgDev
 using Pkg, LibGit2, RegistryTools, URIParser
 import GitHub
 import PkgButlerEngine
+import Base64
 
 include("utils.jl")
 # include("github.jl")

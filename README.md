@@ -8,9 +8,9 @@ PkgDev provides tools for Julia package developers. The package is currently bei
 
 ## Usage
 
-### PkgDev.tag(pkg, version=nothing, registry=nothing)
+### PkgDev.tag(package_name, version=nothing, registry=nothing)
 
-Tag a new release for package `pkg`. The package you want to tag must be deved in the current Julia environment. You pass the package name `pkg` as a `String`. The git commit that is the `HEAD` in the package folder will form the basis for the version to be tagged.
+Tag a new release for package `package_name`. The package you want to tag must be deved in the current Julia environment. You pass the package name `package_name` as a `String`. The git commit that is the `HEAD` in the package folder will form the basis for the version to be tagged.
 
 If you don't specify a `version`, then the `version` field in the `Project.toml` _must_ have the format `x.y.z-DEV`, and the command will tag version `x.y.z` as the next release. Alternatively you can specify one of `:major`, `:minor` or `:patch` for the `version` parameter. In that case `PkgDev.tag` will increase that part of the version number by 1 and tag that version. Finally, you can also specify a full `VersionNumber` as the value for the `version` parameter, in which case that version will be tagged.
 
@@ -23,6 +23,6 @@ The only situation where you would specify a value for `registry` is when you wa
 4. Open a pull request against the registry that tags the first new commit on the release branch as a new version `x.y.z`
 5. Open a pull request against the package repository to merge the release branch into `master`
 
-### PkgDev.enable_pkgbutler(pkg_name)
+### PkgDev.enable_pkgbutler(package_name; channel=:auto)
 
-Enables the Julia Package Butler for package `pkg`. The package must be deved in the current Julia environment. The command will make various modifications to the files in the deved folder of the package. You then then need to commit these changes and push them to github. NOTE: we still need to add the ability to setup the right deploy tokens in the package repository before this function will function entirely smoothly.
+Enables the Julia Package Butler for package `package_name`. The package must be deved in the current Julia environment. The command will make various modifications to the files in the deved folder of the package. You then then need to commit these changes and push them to github. The command will also add a deploy key to the github repository of the package and show instructions on how to add two GitHub Actions secrets to the repository.
