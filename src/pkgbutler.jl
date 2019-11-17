@@ -15,7 +15,11 @@ function enable_pkgbutler(package_name::AbstractString; channel=:auto, force::Bo
 
         pkg_url = LibGit2.url(pkg_remote)
 
-        pkg_owner_repo_name = splitext(URI(pkg_url).path)[1][2:end]
+        pkg_owner_repo_name = if lowercase(splitext(URI(pkg_url).path)[2])==".git"
+            splitext(URI(pkg_url).path)[1][2:end]
+        else
+            URI(pkg_url).path[2:end]
+        end
     finally
         close(pkg_repo)
     end
