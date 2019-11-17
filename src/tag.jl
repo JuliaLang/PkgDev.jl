@@ -44,7 +44,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
     myauth = GitHub.authenticate(read(creds.password, String))
     Base.shred!(creds.password)
 
-    registry_github_owner_repo_name = private_reg_url===nothing ? "JuliaRegistries/General" : splitext(URI(private_reg_url).path)[1][2:end]
+    registry_github_owner_repo_name = private_reg_url===nothing ? "JuliaRegistries/General" : get_repo_onwer_from_url(private_reg_url)
 
     gh_registry_repo = GitHub.repo(registry_github_owner_repo_name)
     gh_forks = GitHub.forks(gh_registry_repo)
@@ -135,7 +135,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
 
         LibGit2.delete_branch(LibGit2.lookup_branch(pkg_repo, name_of_release_branch))
 
-        pkg_owner_repo_name = splitext(URI(pkg_url).path)[1][2:end]
+        pkg_owner_repo_name = get_repo_onwer_from_url(pkg_url)
 
         gh_pkg_repo = GitHub.repo(pkg_owner_repo_name, auth=myauth)
 
