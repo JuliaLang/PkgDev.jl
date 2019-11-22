@@ -10,7 +10,19 @@ function switch_pkgbutler_channel(package_name::AbstractString, channel::Symbol)
     return
 end
 
-function enable_pkgbutler(package_name::AbstractString; channel=:auto, force::Bool=false)
+function switch_pkgbutler_template(package_name::AbstractString, template::Symbol)
+    ctx = Pkg.Types.Context()
+    haskey(ctx.env.project.deps, package_name) || error("Unkonwn package $package_name.")
+    pkg_uuid = ctx.env.project.deps[package_name]
+    pkg_path = ctx.env.manifest[pkg_uuid].path
+    pkg_path===nothing && error("Package must be deved to enable the Julia Package Butler.")
+
+    PkgButlerEngine.configure_pkg(pkg_path; template=template)
+
+    return
+end
+
+function enable_pkgbutler(package_name::AbstractString; channel=:auto, template=:auto, force::Bool=false)
     ctx = Pkg.Types.Context()
     haskey(ctx.env.project.deps, package_name) || error("Unkonwn package $package_name.")
     pkg_uuid = ctx.env.project.deps[package_name]
@@ -34,7 +46,7 @@ function enable_pkgbutler(package_name::AbstractString; channel=:auto, force::Bo
 
     configure_deploykey(pkg_owner_repo_name, force)
 
-    PkgButlerEngine.configure_pkg(pkg_path; channel=channel)
+    PkgButlerEngine.configure_pkg(pkg_path; channel=channel, template=template)
 
     return
 end
