@@ -1,6 +1,6 @@
 name = "PkgDev"
 uuid = "149e707d-584d-56d3-88ec-740c18e106ff"
-version = "1.1.1-DEV"
+version = "1.2.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
