@@ -13,6 +13,8 @@ const PKGEXT = ".jl"
 splitjl(pkg::AbstractString) = endswith(pkg, PKGEXT) ? pkg[1:end-length(PKGEXT)] : pkg
 
 function get_repo_onwer_from_url(pkg_url)
+    startswith(pkg_url, "git@") &&  error("Only packages that use https as the git transport protocol are supported.")
+
     pkg_owner_repo_name = if lowercase(splitext(URI(pkg_url).path)[2])==".git"
         splitext(URI(pkg_url).path)[1][2:end]
     else
