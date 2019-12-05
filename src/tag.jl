@@ -38,6 +38,11 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
         (all_registries[relevant_registry].url, all_registries[relevant_registry].uuid)
     end
 
+    if private_reg_uuid == UUID("23338594-aafe-5451-b93e-139f81909106")
+        private_reg_url = nothing
+        private_reg_uuid = nothing
+    end
+
     creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
 
     # TODO Check for creds===nothing if there are no credentials stored
@@ -141,25 +146,29 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
 
         GitHub.create_pull_request(gh_pkg_repo, auth=myauth, params=Dict(:title=>"New version: v$version_to_be_tagged", :head=>name_of_release_branch, :base=>name_of_old_branch_in_pkg, :body=>""))
 
-        mktempdir() do tmp_path
-            cd(tmp_path) do
-                folder_for_registry = nothing
-                regbranch = if private_reg_url===nothing
-                    folder_for_registry = joinpath(tmp_path, "registries", "23338594-aafe-5451-b93e-139f81909106")
-                    RegistryTools.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=general_reg_url, push=false)
-                else
-                    folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
-                    RegistryTools.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
-                end
+        if private_reg_url===nothing
+            GitHub.create_comment(gh_pkg_repo, string(hash_of_commit_to_be_tagged), :commit, params = Dict("body"=>"@JuliaRegistrator register()"))
+        else
+            mktempdir() do tmp_path
+                cd(tmp_path) do
+                    folder_for_registry = nothing
+                    regbranch = if private_reg_url===nothing
+                        folder_for_registry = joinpath(tmp_path, "registries", "23338594-aafe-5451-b93e-139f81909106")
+                        RegistryTools.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=general_reg_url, push=false)
+                    else
+                        folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
+                        RegistryTools.RegEdit.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
+                    end
 
-                registry_repo = GitRepo(folder_for_registry)
-                try
-                    run(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry))
-                finally
-                    close(registry_repo)
-                end
+                    registry_repo = GitRepo(folder_for_registry)
+                    try
+                        run(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry))
+                    finally
+                        close(registry_repo)
+                    end
 
-                GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>""))
+                    GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>""))
+                end
             end
         end
     finally

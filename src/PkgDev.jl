@@ -4,6 +4,7 @@ using Pkg, LibGit2, RegistryTools, URIParser
 import GitHub
 import PkgButlerEngine
 import Base64
+using UUIDs
 
 include("tag.jl")
 include("pkgbutler.jl")
