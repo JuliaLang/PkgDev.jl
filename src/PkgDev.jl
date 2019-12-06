@@ -5,9 +5,12 @@ import GitHub
 import PkgButlerEngine
 import Base64
 using UUIDs
+import DocumentFormat
+using FilePathsBase
 
 include("tag.jl")
 include("pkgbutler.jl")
+include("format.jl")
 
 # remove extension .jl
 const PKGEXT = ".jl"

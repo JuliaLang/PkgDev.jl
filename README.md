@@ -38,3 +38,7 @@ Switch the Julia Package Butler channel for package `package_name`. The package 
 ### PkgDev.switch_pkgbutler_template(package_name, template)
 
 Switch the Julia Package Butler template for package `package_name`. The package you want to tag must be deved in the current Julia environment and the Julia Package Butler must already be enabled for the package. The `template` argument can be `:auto`, `:default` or `:bach`.
+
+### PkgDev.format(package_name)
+
+Format all the Julia source code files for the package with name `package_name`. The package you want to tag must be deved in the current Julia environment. This function uses [DocumentFormat.jl](https://github.com/julia-vscode/DocumentFormat.jl).
