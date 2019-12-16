@@ -41,4 +41,4 @@ Switch the Julia Package Butler template for package `package_name`. The package
 
 ### PkgDev.format(package_name)
 
-Format all the Julia source code files for the package with name `package_name`. The package you want to tag must be deved in the current Julia environment. This function uses [DocumentFormat.jl](https://github.com/julia-vscode/DocumentFormat.jl).
+Format all the Julia source code files for the package with name `package_name`. The package you want to format must be deved in the current Julia environment. This function uses [DocumentFormat.jl](https://github.com/julia-vscode/DocumentFormat.jl).
