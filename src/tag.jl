@@ -1,4 +1,4 @@
-function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,Nothing}=nothing; registry::Union{AbstractString,Nothing}=nothing)
+function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,Nothing}=nothing; registry::Union{AbstractString,Nothing}=nothing, release_notes::Union{AbstractString,Nothing}=nothing)
     general_reg_url = "https://github.com/JuliaRegistries/General"
 
     github_username = LibGit2.getconfig("github.user", "")
@@ -6,7 +6,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
     github_username == "" && error("You need to configure the github.user setting.")
 
     ctx = Pkg.Types.Context()
-    haskey(ctx.env.project.deps, package_name) || error("Unkonwn package $package_name.")
+    haskey(ctx.env.project.deps, package_name) || error("Unknown package $package_name.")
     pkg_uuid = ctx.env.project.deps[package_name]
     pkg_path = ctx.env.manifest[pkg_uuid].path
     pkg_path===nothing && error("Package must be deved to be tagged.")
@@ -26,7 +26,7 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
         if length(registries_that_contain_the_package)==0
             (nothing, nothing)
         elseif length(registries_that_contain_the_package)>1
-            error("Package is registered in more than on registry, please specify in which you want to register the tag.")
+            error("Package is registered in more than one registry, please specify in which you want to register the tag.")
         else
             (registries_that_contain_the_package[1].url, registries_that_contain_the_package[1].uuid)
         end
@@ -167,7 +167,20 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
                         close(registry_repo)
                     end
 
-                    GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>""))
+                    body = ""
+                    if release_notes !== nothing
+                        # Prepend every line with '> ' to quote it (this format is expected by TagBot).
+                        notes = join(map(line -> "> $line", split(release_notes, "\n")), "\n")
+                        body *= """
+
+                            Release notes:
+                            <!-- BEGIN RELEASE NOTES -->
+                            $notes
+                            <!-- END RELEASE NOTES -->
+                            """
+                    end
+
+                    GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>strip(body)))
                 end
             end
         end
