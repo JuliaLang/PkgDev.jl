@@ -45,7 +45,8 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
 
     creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
 
-    # TODO Check for creds===nothing if there are no credentials stored
+    creds.password===nothing && error("Did not find credentials for github.com in the git credential manager.")
+
     myauth = GitHub.authenticate(read(creds.password, String))
     Base.shred!(creds.password)
 
