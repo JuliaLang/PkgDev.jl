@@ -147,8 +147,8 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
 
         GitHub.create_pull_request(gh_pkg_repo, auth=myauth, params=Dict(:title=>"New version: v$version_to_be_tagged", :head=>name_of_release_branch, :base=>name_of_old_branch_in_pkg, :body=>""))
 
-        if private_reg_url===nothing && false
-            GitHub.create_comment(gh_pkg_repo, string(hash_of_commit_to_be_tagged), :commit, params = Dict("body"=>"@JuliaRegistrator register()"))
+        if private_reg_url===nothing
+            GitHub.create_comment(gh_pkg_repo, string(hash_of_commit_to_be_tagged), :commit, params = Dict("body"=>"@JuliaRegistrator register()"), auth=myauth)
         else
             mktempdir() do tmp_path
                 cd(tmp_path) do
