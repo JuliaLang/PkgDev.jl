@@ -8,7 +8,7 @@ PkgDev provides tools for Julia package developers. The package is currently bei
 
 ## Usage
 
-### PkgDev.tag(package_name, version=nothing, registry=nothing, release_notes=nothing)
+### PkgDev.tag(package_name, version=nothing; registry=nothing, release_notes=nothing)
 
 Tag a new release for package `package_name`. The package you want to tag must be deved in the current Julia environment. You pass the package name `package_name` as a `String`. The git commit that is the `HEAD` in the package folder will form the basis for the version to be tagged.
 
@@ -19,11 +19,14 @@ The only situation where you would specify a value for `registry` is when you wa
 If you want to add custom release notes for [TagBot](https://github.com/JuliaRegistries/TagBot), do so with the `release_notes` keyword.
 
 `PkgDev.tag` runs through the following process when it tags a new version:
-1. Create a new release branch called `release-x.y.z`
-2. Change the version field in `Project.toml` and commit that change on the release branch
-3. Change the version field in `Project.toml` to `x.y.z+1-DEV` and commit that change also to the release branch
-4. Open a pull request against the registry that tags the first new commit on the release branch as a new version `x.y.z`
-5. Open a pull request against the package repository to merge the release branch into `master`
+1. Create a new release branch called `release-x.y.z`.
+2. Change the version field in `Project.toml` and commit that change on the release branch.
+3. Change the version field in `Project.toml` to `x.y.z+1-DEV` and commit that change also to the release branch.
+4a. For packages in the General registry: add a comment that triggers [Registrator](https://github.com/JuliaRegistries/Registrator.jl).
+4b. For packages in other registries: Open a pull request against the registry that tags the first new commit on the release branch as a new version `x.y.z`.
+5. Open a pull request against the package repository to merge the release branch into `master`.
+
+If you have [TagBot](https://github.com/JuliaRegistries/TagBot) installed for your package with the `branches: true` setting, it will automatically merge the `release-x.y.z` branch into `master` once the pull request for the registry has been merged. If you use the package butler (desribed below) it auto-configures your repository for this workflow.
 
 ### PkgDev.enable_pkgbutler(package_name; channel=:auto, template=:auto)
 
