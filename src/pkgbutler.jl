@@ -29,6 +29,10 @@ function enable_pkgbutler(package_name::AbstractString; channel=:auto, template=
     pkg_path = ctx.env.manifest[pkg_uuid].path
     pkg_path===nothing && error("Package must be deved to enable the Julia Package Butler.")
 
+    if !isabspath(pkg_path)
+        pkg_path = abspath(joinpath(dirname(ctx.env.manifest_file), pkg_path))
+    end
+
     pkg_owner_repo_name = nothing
 
     pkg_repo = GitRepo(pkg_path)
