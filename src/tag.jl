@@ -161,6 +161,8 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
                         RegistryTools.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
                     end
 
+                    @info regbranch.metadata
+
                     registry_repo = GitRepo(folder_for_registry)
                     try
                         run(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry))
