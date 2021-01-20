@@ -1,15 +1,54 @@
-function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,Nothing}=nothing; registry::Union{AbstractString,Nothing}=nothing, release_notes::Union{AbstractString,Nothing}=nothing)
-    general_reg_url = "https://github.com/JuliaRegistries/General"
-
-    github_username = LibGit2.getconfig("github.user", "")
-
-    github_username == "" && error("You need to configure the github.user setting.")
+function tag(
+        package_name::AbstractString,
+        version::Union{Symbol,VersionNumber,Nothing}=nothing;
+        kwargs...
+        )
 
     ctx = Pkg.Types.Context()
     haskey(ctx.env.project.deps, package_name) || error("Unknown package $package_name.")
     pkg_uuid = ctx.env.project.deps[package_name]
     pkg_path = ctx.env.manifest[pkg_uuid].path
     pkg_path===nothing && error("Package must be deved to be tagged.")
+
+    tag_internal(package_name, pkg_uuid, pkg_path, version; kwargs...)
+end
+
+function tag(
+        package_path::AbstractPath,
+        version::Union{Symbol,VersionNumber,Nothing}=nothing;
+        kwargs...)
+
+    project_toml = isfile(joinpath(package_path, "Project.toml")) ? joinpath(package_path, "Project.toml") : isfile(joinpath(package_path, "JuliaProject.toml")) ? joinpath(package_path, "JuliaProject.toml") : nothing
+    project_toml === nothing && error("Could not find a 'Project.toml' at $package_path.")    
+
+    project_content = Pkg.TOML.parsefile(string(project_toml))
+
+    package_name = get(project_content, "name", nothing)
+    package_name===nothing && error("The project toml for the package doesn't contain a name.")
+
+    pkg_uuid = get(project_content, "uuid", nothing)
+    pkg_uuid===nothing && error("The project toml for the package doesn't contain a uuid.")
+
+    tag_internal(package_name, pkg_uuid, string(package_path), version; kwargs...)
+end
+
+function tag_internal(
+        package_name::AbstractString,
+        pkg_uuid, pkg_path::AbstractString,
+        version::Union{Symbol,VersionNumber,Nothing}=nothing;
+        registry::Union{AbstractString,Nothing}=nothing,
+        release_notes::Union{AbstractString,Nothing}=nothing,
+        credentials::Union{AbstractString, Nothing}=nothing,
+        github_username::Union{AbstractString, Nothing} = nothing)
+
+    general_reg_url = "https://github.com/JuliaRegistries/General"
+
+    if github_username===nothing
+        github_username = LibGit2.getconfig("github.user", "")
+        github_username == "" && error("You need to configure the github.user setting.")
+    end
+
+    isdir(pkg_path) || error("Path for package does not exist on disc.")
 
     all_registries = Pkg.Types.collect_registries()
 
@@ -43,12 +82,16 @@ function tag(package_name::AbstractString, version::Union{Symbol,VersionNumber,N
         private_reg_uuid = nothing
     end
 
-    creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
+    if credentials===nothing        
+        creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
 
-    creds.password===nothing && error("Did not find credentials for github.com in the git credential manager.")
+        creds.password===nothing && error("Did not find credentials for github.com in the git credential manager.")
 
-    myauth = GitHub.authenticate(read(creds.password, String))
-    Base.shred!(creds.password)
+        credentials = read(creds.password, String)
+        Base.shred!(creds.password)
+    end
+
+    myauth = GitHub.authenticate(credentials)
 
     registry_github_owner_repo_name = private_reg_url===nothing ? "JuliaRegistries/General" : get_repo_onwer_from_url(private_reg_url)
 
