@@ -1,3 +1,8 @@
+function TOML_print_conversion(x)
+    x isa VersionNumber && return "$x"
+    error("TOML unhandled type $(typeof(x)).")
+end
+
 function tag(
         package_name::AbstractString,
         version::Union{Symbol,VersionNumber,Nothing}=nothing;
@@ -21,7 +26,7 @@ function tag(
     project_toml = isfile(joinpath(package_path, "Project.toml")) ? joinpath(package_path, "Project.toml") : isfile(joinpath(package_path, "JuliaProject.toml")) ? joinpath(package_path, "JuliaProject.toml") : nothing
     project_toml === nothing && error("Could not find a 'Project.toml' at $package_path.")    
 
-    project_content = Pkg.TOML.parsefile(string(project_toml))
+    project_content = TOML.parsefile(string(project_toml))
 
     package_name = get(project_content, "name", nothing)
     package_name===nothing && error("The project toml for the package doesn't contain a name.")
@@ -115,7 +120,7 @@ function tag_internal(
 
         pkg_project_toml_path = isfile(joinpath(pkg_path, "JuliaProject.toml")) ? joinpath(pkg_path, "JuliaProject.toml") : isfile(joinpath(pkg_path, "Project.toml")) ? joinpath(pkg_path, "Project.toml") : error("Couldn't find Project.toml.")
 
-        pkg_toml_content = Pkg.TOML.parsefile(pkg_project_toml_path)
+        pkg_toml_content = TOML.parsefile(pkg_project_toml_path)
 
         haskey(pkg_toml_content, "version") || error("Project.toml must have a version field.")
 
@@ -155,7 +160,7 @@ function tag_internal(
         pkg_toml_content["version"] = version_to_be_tagged
 
         open(pkg_project_toml_path, "w") do f
-            Pkg.TOML.print(f, pkg_toml_content)
+            TOML.print(TOML_print_conversion, f, pkg_toml_content)
         end
 
         project_as_it_should_be_tagged = Pkg.Types.read_project(pkg_project_toml_path)
@@ -167,12 +172,12 @@ function tag_internal(
 
         # Now update the version field in the Project.toml
 
-        pkg_toml_content = Pkg.TOML.parsefile(pkg_project_toml_path)
+        pkg_toml_content = TOML.parsefile(pkg_project_toml_path)
 
         pkg_toml_content["version"] = next_version
 
         open(pkg_project_toml_path, "w") do f
-            Pkg.TOML.print(f, pkg_toml_content)
+            TOML.print(TOML_print_conversion, f, pkg_toml_content)
         end
 
         LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])

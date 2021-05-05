@@ -1,12 +1,13 @@
 module PkgDev
 
-using Pkg, LibGit2, RegistryTools, URIParser
+using Pkg, LibGit2, RegistryTools, URIs
 import GitHub
 import PkgButlerEngine
 import Base64
 using UUIDs
 import DocumentFormat
 using FilePathsBase
+import TOML
 
 include("tag.jl")
 include("pkgbutler.jl")
