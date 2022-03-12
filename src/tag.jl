@@ -131,7 +131,7 @@ function tag_internal(
 
     registry_github_owner_repo_name = private_reg_url===nothing ? "JuliaRegistries/General" : get_repo_onwer_from_url(private_reg_url)
 
-    gh_registry_repo = GitHub.repo(registry_github_owner_repo_name)
+    gh_registry_repo = GitHub.repo(registry_github_owner_repo_name, auth=myauth)
     gh_forks = GitHub.forks(gh_registry_repo)
     fork_index = findfirst(i->i.owner.login==github_username, gh_forks[1])
     fork_index===nothing && error("You need to have a fork of the registry in your github account.")
