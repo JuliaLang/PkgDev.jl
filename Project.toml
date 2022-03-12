@@ -1,6 +1,6 @@
 name = "PkgDev"
 uuid = "149e707d-584d-56d3-88ec-740c18e106ff"
-version = "1.7.1"
+version = "1.7.2-DEV"
 
 [deps]
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
