@@ -37,6 +37,37 @@ function tag(
     tag_internal(package_name, pkg_uuid, string(package_path), version; kwargs...)
 end
 
+# This is adapted over from LocalRegistry.jl
+function our_collect_registries()
+    registries = []
+    for depot in Pkg.depots()
+        isdir(depot) || continue
+        reg_dir = joinpath(depot, "registries")
+        isdir(reg_dir) || continue
+        for name in readdir(reg_dir)
+            file = joinpath(reg_dir, name, "Registry.toml")
+            if !isfile(file)
+                # Packed registry in Julia 1.7+.
+                file = joinpath(reg_dir, "$(name).toml")
+            end
+
+            if isfile(file)
+                content =TOML.parsefile(file)
+
+                spec = (
+                    name = content["name"]::String,
+                    uuid = UUID(content["uuid"]::String),
+                    url = get(content, "repo", nothing)::Union{String,Nothing},
+                    path = file
+                )
+
+                push!(registries, spec)
+            end
+        end
+    end
+    return registries
+end
+
 function tag_internal(
         package_name::AbstractString,
         pkg_uuid, pkg_path::AbstractString,
@@ -55,12 +86,12 @@ function tag_internal(
 
     isdir(pkg_path) || error("Path for package does not exist on disc.")
 
-    all_registries = Pkg.Types.collect_registries()
+    all_registries = our_collect_registries()
 
     private_reg_url, private_reg_uuid = if registry===nothing
         registries_that_contain_the_package = []
         for reg_spec in all_registries
-            reg_data = Pkg.Types.read_registry(joinpath(reg_spec.path, "Registry.toml"))
+            reg_data = TOML.parsefile(reg_spec.path)
 
             if haskey(reg_data["packages"], string(pkg_uuid))
                 push!(registries_that_contain_the_package, reg_spec)
