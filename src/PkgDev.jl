@@ -2,20 +2,11 @@ module PkgDev
 
 using Pkg, LibGit2, RegistryTools, URIs
 import GitHub
-import PkgButlerEngine
-import Base64
 using UUIDs
-import DocumentFormat
 using FilePathsBase
 import TOML
 
 include("tag.jl")
-include("pkgbutler.jl")
-include("format.jl")
-
-# remove extension .jl
-const PKGEXT = ".jl"
-splitjl(pkg::AbstractString) = endswith(pkg, PKGEXT) ? pkg[1:end-length(PKGEXT)] : pkg
 
 function get_repo_onwer_from_url(pkg_url)
     startswith(pkg_url, "git@") &&  error("Only packages that use https as the git transport protocol are supported.")

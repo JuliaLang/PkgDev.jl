@@ -1,7 +1,5 @@
 # PkgDev
 
-[![Build Status](https://travis-ci.org/JuliaLang/PkgDev.jl.svg?branch=master)](https://travis-ci.org/JuliaLang/PkgDev.jl)
-
 ## Overview
 
 PkgDev provides tools for Julia package developers. The package is currently being rewritten for Julia 1.x and only for brave early adopters.
@@ -26,24 +24,4 @@ If you want to add custom release notes for [TagBot](https://github.com/JuliaReg
 4b. For packages in other registries: Open a pull request against the registry that tags the first new commit on the release branch as a new version `x.y.z`.
 5. Open a pull request against the package repository to merge the release branch into `master`.
 
-If you have [TagBot](https://github.com/JuliaRegistries/TagBot) installed for your package with the `branches: true` setting, it will automatically merge the `release-x.y.z` branch into `master` once the pull request for the registry has been merged. If you use the package butler (desribed below) it auto-configures your repository for this workflow.
-
-### PkgDev.enable_pkgbutler(package_name; channel=:auto, template=:auto)
-
-Enables the Julia Package Butler for package `package_name`. The package must be deved in the current Julia environment. The command will make various modifications to the files in the deved folder of the package. You then then need to commit these changes and push them to GitHub. The command will also add a deploy key to the GitHub repository of the package and show instructions on how to add two GitHub Actions secrets to the repository.
-
-The `channel` argument can be `:auto`, `:stable` or `:dev`. There are two channels of updates: `stable` and `dev`. The `dev` channel will run the Julia Package Butler workflow every 5 minutes and it will use the `master` branch of the [Julia Packge Butler engine](https://github.com/davidanthoff/PkgButlerEngine.jl), i.e. it will get new features more quickly. The `stable` branch  runs the Julia Package Butler workflow every hour, and new features in the Julia Package Butler engine are only pushed out to the stable channel once they have been tested for a while on the `dev` channel. If you specify `:auto` as the argument, any existing channel choice you have previously made for the package will be retained, otherwise the package will be configure for the `stable` channel.
-
-The `template` argument can be `:auto`, `:default` or `:bach`. Different templates will configure different aspects of your package. At this point everyone should use the `:default` template (or `:auto` template), everything else is considered experimental.
-
-### PkgDev.switch_pkgbutler_channel(package_name, channel)
-
-Switch the Julia Package Butler channel for package `package_name`. The package you want to tag must be deved in the current Julia environment and the Julia Package Butler must already be enabled for the package. The `channel` argument can be `:auto`, `:stable` or `:dev`, see the documentation for `PkgDev.enable_pkgbutler` for an explanation of the different channels.
-
-### PkgDev.switch_pkgbutler_template(package_name, template)
-
-Switch the Julia Package Butler template for package `package_name`. The package you want to tag must be deved in the current Julia environment and the Julia Package Butler must already be enabled for the package. The `template` argument can be `:auto`, `:default` or `:bach`.
-
-### PkgDev.format(package_name)
-
-Format all the Julia source code files for the package with name `package_name`. The package you want to format must be deved in the current Julia environment. This function uses [DocumentFormat.jl](https://github.com/julia-vscode/DocumentFormat.jl).
+If you have [TagBot](https://github.com/JuliaRegistries/TagBot) installed for your package with the `branches: true` setting, it will automatically merge the `release-x.y.z` branch into `master` once the pull request for the registry has been merged.
