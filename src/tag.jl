@@ -208,7 +208,9 @@ function tag_internal(
                 TOML.print(TOML_print_conversion, f, pkg_toml_content)
             end
 
-            project_as_it_should_be_tagged = Pkg.Types.read_project(pkg_project_toml_path)
+            # RegistryTools 2 takes its own Project type (or a path, but the file is
+            # rewritten to the next dev version before registration happens).
+            project_as_it_should_be_tagged = RegistryTools.Project(pkg_project_toml_path)
 
             LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
             hash_of_commit_to_be_tagged = LibGit2.commit(pkg_repo, "Set version to v$version_to_be_tagged")
