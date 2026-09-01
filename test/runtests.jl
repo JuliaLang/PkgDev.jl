@@ -2,4 +2,29 @@ using PkgDev
 using Test
 
 @testset "PkgDev" begin
+
+@testset "compute_tag_versions" begin
+    # Default: strip the -DEV suffix, no bump.
+    @test PkgDev.compute_tag_versions(v"1.2.3-DEV", nothing) == (v"1.2.3", v"1.2.4-DEV")
+
+    # :patch on a -DEV version also just strips.
+    @test PkgDev.compute_tag_versions(v"1.2.3-DEV", :patch) == (v"1.2.3", v"1.2.4-DEV")
+
+    # :patch on a released version bumps.
+    @test PkgDev.compute_tag_versions(v"1.2.3", :patch) == (v"1.2.4", v"1.2.5-DEV")
+
+    # :minor and :major bump and zero the lower components.
+    @test PkgDev.compute_tag_versions(v"1.2.3-DEV", :minor) == (v"1.3.0", v"1.3.1-DEV")
+    @test PkgDev.compute_tag_versions(v"1.2.3-DEV", :major) == (v"2.0.0", v"2.0.1-DEV")
+
+    # An explicit version is used as-is.
+    @test PkgDev.compute_tag_versions(v"1.2.3-DEV", v"5.6.7") == (v"5.6.7", v"5.6.8-DEV")
+
+    # Without an explicit version the current version must be x.y.z-DEV.
+    @test_throws ErrorException PkgDev.compute_tag_versions(v"1.2.3", nothing)
+    @test_throws ErrorException PkgDev.compute_tag_versions(v"1.2.3-rc1", nothing)
+
+    @test_throws ErrorException PkgDev.compute_tag_versions(v"1.2.3-DEV", :banana)
+end
+
 end

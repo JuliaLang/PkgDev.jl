@@ -68,6 +68,36 @@ function our_collect_registries()
     return registries
 end
 
+"""
+    compute_tag_versions(current, version)
+
+Given the `current` version from the package's Project.toml and the requested
+release (`nothing`, `:major`, `:minor`, `:patch` or an explicit
+`VersionNumber`), return the tuple `(version_to_be_tagged, next_dev_version)`.
+"""
+function compute_tag_versions(current::VersionNumber, version::Union{Symbol,VersionNumber,Nothing})
+    version_to_be_tagged = if version===nothing
+        current.prerelease==("DEV",) || error("Version in Project.toml must have format of x.y.z-DEV.")
+        VersionNumber(current.major, current.minor, current.patch)
+    elseif version isa VersionNumber
+        version
+    elseif version==:major
+        VersionNumber(current.major+1, 0, 0)
+    elseif version==:minor
+        VersionNumber(current.major, current.minor+1, 0)
+    elseif version==:patch && current.prerelease==("DEV",)
+        VersionNumber(current.major, current.minor, current.patch)
+    elseif version==:patch
+        VersionNumber(current.major, current.minor, current.patch+1)
+    else
+        error("Invalid argument for version, must be nothing, a VersionNumber, :major, :minor or :patch.")
+    end
+
+    next_version = VersionNumber(version_to_be_tagged.major, version_to_be_tagged.minor, version_to_be_tagged.patch+1, ("DEV",))
+
+    return version_to_be_tagged, next_version
+end
+
 function tag_internal(
         package_name::AbstractString,
         pkg_uuid, pkg_path::AbstractString,
@@ -157,24 +187,7 @@ function tag_internal(
 
         current_version_in_pkg = VersionNumber(pkg_toml_content["version"])
 
-        version_to_be_tagged = if version===nothing
-            current_version_in_pkg.prerelease!=("DEV",) && current_version_in_pkg.build!=() && error("Version in Project.toml must have format of x.y.z-DEV.")
-            VersionNumber(current_version_in_pkg.major, current_version_in_pkg.minor, current_version_in_pkg.patch)
-        elseif version isa VersionNumber
-            version
-        elseif version==:major
-            VersionNumber(current_version_in_pkg.major+1, 0, 0)
-        elseif version==:minor
-            VersionNumber(current_version_in_pkg.major, current_version_in_pkg.minor+1, 0)
-        elseif version==:patch && current_version_in_pkg.prerelease==("DEV",)
-            VersionNumber(current_version_in_pkg.major, current_version_in_pkg.minor, current_version_in_pkg.patch)
-        elseif version==:patch
-            VersionNumber(current_version_in_pkg.major, current_version_in_pkg.minor, current_version_in_pkg.patch+1)
-        else
-            error("Invalid argument for version, must be nothing, a VersionNumber, :major, :minor or :patch.")
-        end
-
-        next_version = VersionNumber(version_to_be_tagged.major, version_to_be_tagged.minor, version_to_be_tagged.patch+1, ("DEV",))
+        version_to_be_tagged, next_version = compute_tag_versions(current_version_in_pkg, version)
 
         # TODO Check whether that version already exists, and if so, error.
 
@@ -184,93 +197,118 @@ function tag_internal(
 
         name_of_old_branch_in_pkg = LibGit2.headname(pkg_repo)
 
-        LibGit2.branch!(pkg_repo, name_of_release_branch, force=true)
+        try
+            LibGit2.branch!(pkg_repo, name_of_release_branch, force=true)
 
-        # Now update the version field in the Project.toml
+            # Now update the version field in the Project.toml
 
-        pkg_toml_content["version"] = version_to_be_tagged
+            pkg_toml_content["version"] = version_to_be_tagged
 
-        open(pkg_project_toml_path, "w") do f
-            TOML.print(TOML_print_conversion, f, pkg_toml_content)
-        end
-
-        project_as_it_should_be_tagged = Pkg.Types.read_project(pkg_project_toml_path)
-
-        LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
-        hash_of_commit_to_be_tagged = LibGit2.commit(pkg_repo, "Set version to v$version_to_be_tagged")
-
-        tree_hash_of_commit_to_be_tagged = LibGit2.GitHash(LibGit2.peel(LibGit2.GitTree, LibGit2.GitCommit(pkg_repo, hash_of_commit_to_be_tagged)))
-
-        # Now update the version field in the Project.toml
-
-        pkg_toml_content = TOML.parsefile(pkg_project_toml_path)
-
-        pkg_toml_content["version"] = next_version
-
-        open(pkg_project_toml_path, "w") do f
-            TOML.print(TOML_print_conversion, f, pkg_toml_content)
-        end
-
-        LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
-        LibGit2.commit(pkg_repo, "Set version to v$next_version")
-
-        run(Cmd(`git push origin refs/heads/$name_of_release_branch`, dir=pkg_path))
-
-        LibGit2.branch!(pkg_repo, name_of_old_branch_in_pkg)
-
-        LibGit2.delete_branch(LibGit2.lookup_branch(pkg_repo, name_of_release_branch))
-
-        pkg_owner_repo_name = get_repo_onwer_from_url(pkg_url)
-
-        gh_pkg_repo = GitHub.repo(pkg_owner_repo_name, auth=myauth)
-
-        GitHub.create_pull_request(gh_pkg_repo, auth=myauth, params=Dict(:title=>"New version: v$version_to_be_tagged", :head=>name_of_release_branch, :base=>name_of_old_branch_in_pkg, :body=>""))
-
-        if private_reg_url===nothing
-            body = "@JuliaRegistrator register()"
-
-            if release_notes !== nothing
-                body *= "\n\nRelease notes:\n\n $release_notes\n"
+            open(pkg_project_toml_path, "w") do f
+                TOML.print(TOML_print_conversion, f, pkg_toml_content)
             end
 
-            GitHub.create_comment(gh_pkg_repo, string(hash_of_commit_to_be_tagged), :commit, params = Dict("body"=>body), auth=myauth)
-        else
-            mktempdir() do tmp_path
-                cd(tmp_path) do
-                    folder_for_registry = nothing
-                    regbranch = if private_reg_url===nothing
-                        folder_for_registry = joinpath(tmp_path, "registries", "23338594-aafe-5451-b93e-139f81909106")
-                        RegistryTools.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=general_reg_url, push=false)
-                    else
+            project_as_it_should_be_tagged = Pkg.Types.read_project(pkg_project_toml_path)
+
+            LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
+            hash_of_commit_to_be_tagged = LibGit2.commit(pkg_repo, "Set version to v$version_to_be_tagged")
+
+            tree_hash_of_commit_to_be_tagged = LibGit2.GitHash(LibGit2.peel(LibGit2.GitTree, LibGit2.GitCommit(pkg_repo, hash_of_commit_to_be_tagged)))
+
+            # Now update the version field in the Project.toml
+
+            pkg_toml_content = TOML.parsefile(pkg_project_toml_path)
+
+            pkg_toml_content["version"] = next_version
+
+            open(pkg_project_toml_path, "w") do f
+                TOML.print(TOML_print_conversion, f, pkg_toml_content)
+            end
+
+            LibGit2.add!(pkg_repo, splitdir(pkg_project_toml_path)[2])
+            LibGit2.commit(pkg_repo, "Set version to v$next_version")
+
+            # git's output must not end up on stdout: when PkgDev runs embedded in a
+            # host whose stdout is a protocol stream (e.g. an MCP server), that would
+            # corrupt the stream.
+            run(pipeline(Cmd(`git push origin refs/heads/$name_of_release_branch`, dir=pkg_path); stdout=stderr))
+
+            LibGit2.branch!(pkg_repo, name_of_old_branch_in_pkg)
+
+            LibGit2.delete_branch(LibGit2.lookup_branch(pkg_repo, name_of_release_branch))
+
+            pkg_owner_repo_name = get_repo_onwer_from_url(pkg_url)
+
+            gh_pkg_repo = GitHub.repo(pkg_owner_repo_name, auth=myauth)
+
+            GitHub.create_pull_request(gh_pkg_repo, auth=myauth, params=Dict(:title=>"New version: v$version_to_be_tagged", :head=>name_of_release_branch, :base=>name_of_old_branch_in_pkg, :body=>""))
+
+            if private_reg_url===nothing
+                body = "@JuliaRegistrator register()"
+
+                if release_notes !== nothing
+                    body *= "\n\nRelease notes:\n\n $release_notes\n"
+                end
+
+                GitHub.create_comment(gh_pkg_repo, string(hash_of_commit_to_be_tagged), :commit, params = Dict("body"=>body), auth=myauth)
+            else
+                mktempdir() do tmp_path
+                    cd(tmp_path) do
                         folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
-                        RegistryTools.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
+                        regbranch = RegistryTools.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
+
+                        @info regbranch.metadata
+
+                        registry_repo = GitRepo(folder_for_registry)
+                        try
+                            run(pipeline(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry); stdout=stderr))
+                        finally
+                            close(registry_repo)
+                        end
+
+                        body = ""
+                        if release_notes !== nothing
+                            # Prepend every line with '> ' to quote it (this format is expected by TagBot).
+                            notes = join(map(line -> "> $line", split(release_notes, "\n")), "\n")
+                            body *= """
+
+                                Release notes:
+                                <!-- BEGIN RELEASE NOTES -->
+                                $notes
+                                <!-- END RELEASE NOTES -->
+                                """
+                        end
+
+                        GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>strip(body)))
                     end
-
-                    @info regbranch.metadata
-
-                    registry_repo = GitRepo(folder_for_registry)
-                    try
-                        run(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry))
-                    finally
-                        close(registry_repo)
-                    end
-
-                    body = ""
-                    if release_notes !== nothing
-                        # Prepend every line with '> ' to quote it (this format is expected by TagBot).
-                        notes = join(map(line -> "> $line", split(release_notes, "\n")), "\n")
-                        body *= """
-
-                            Release notes:
-                            <!-- BEGIN RELEASE NOTES -->
-                            $notes
-                            <!-- END RELEASE NOTES -->
-                            """
-                    end
-
-                    GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>strip(body)))
                 end
             end
+        catch
+            # Best-effort local rollback: return to the branch we started on
+            # (discarding anything the release flow left in the working tree) and
+            # delete the local release branch, so that a retry does not fail with
+            # "A branch named ... already exists". Anything that was already created
+            # remotely is left alone.
+            try
+                if LibGit2.headname(pkg_repo) != name_of_old_branch_in_pkg
+                    old_branch_ref = LibGit2.lookup_branch(pkg_repo, name_of_old_branch_in_pkg)
+                    if old_branch_ref !== nothing
+                        old_commit = LibGit2.peel(LibGit2.GitCommit, old_branch_ref)
+                        LibGit2.checkout!(pkg_repo, string(LibGit2.GitHash(old_commit)))
+                        LibGit2.branch!(pkg_repo, name_of_old_branch_in_pkg)
+                    end
+                end
+            catch rollback_error
+                @warn "Could not switch back to the original branch $name_of_old_branch_in_pkg." exception=rollback_error
+            end
+            try
+                release_branch_ref = LibGit2.lookup_branch(pkg_repo, name_of_release_branch)
+                release_branch_ref===nothing || LibGit2.delete_branch(release_branch_ref)
+            catch rollback_error
+                @warn "Could not delete the local branch $name_of_release_branch." exception=rollback_error
+            end
+            @warn "Tagging failed part-way through. The local repository has been restored, but anything that was already created remotely — the pushed $name_of_release_branch branch, a pull request or a registration request — is still there and should be inspected before retrying."
+            rethrow()
         end
     finally
         close(pkg_repo)
