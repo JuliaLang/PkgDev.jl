@@ -14,6 +14,12 @@ If you don't specify a `version`, then the `version` field in the `Project.toml`
 
 The only situation where you would specify a value for `registry` is when you want to register a new package for the first time in a registry that is not `General`. In all other situations, `PkgDev.tag` will automatically figure out in which registry your package is registered. When you do pass a value for `registry`, it should simply be the short name of a registry that is one of the registries your local system is connected with.
 
+Both https and ssh remotes are supported for the package repository: the
+`origin` remote may be `https://github.com/owner/repo.git`,
+`git@github.com:owner/repo.git` or `ssh://git@github.com/owner/repo.git`. Note
+that a GitHub API token is required in all cases, since `PkgDev.tag` opens pull
+requests on your behalf. The package and its registry must be hosted on GitHub.
+
 If you want to add custom release notes for [TagBot](https://github.com/JuliaRegistries/TagBot), do so with the `release_notes` keyword.
 
 `PkgDev.tag` runs through the following process when it tags a new version:
