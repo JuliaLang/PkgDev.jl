@@ -169,7 +169,8 @@ function tag_internal(
     gh_forks = GitHub.forks(gh_registry_repo, auth=myauth)
     fork_index = findfirst(i->i.owner.login==github_username, gh_forks[1])
     fork_index===nothing && error("You need to have a fork of the registry in your github account.")
-    registry_fork_url = string(gh_forks[1][fork_index].html_url)
+    registry_fork_https_url = string(gh_forks[1][fork_index].html_url)
+    registry_fork_owner_repo_name = string(gh_forks[1][fork_index].full_name)
 
     pkg_repo = GitRepo(pkg_path)
 
@@ -182,6 +183,10 @@ function tag_internal(
         pkg_remote===nothing && error("The package must have a remote called origin.")
 
         pkg_url = LibGit2.url(pkg_remote)
+
+        # Parse the remote URL up front: an unsupported one must fail before the
+        # release branch is created, not half-way through the release.
+        pkg_owner_repo_name = get_repo_onwer_from_url(pkg_url)
 
         pkg_project_toml_path = isfile(joinpath(pkg_path, "JuliaProject.toml")) ? joinpath(pkg_path, "JuliaProject.toml") : isfile(joinpath(pkg_path, "Project.toml")) ? joinpath(pkg_path, "Project.toml") : error("Couldn't find Project.toml.")
 
@@ -243,8 +248,6 @@ function tag_internal(
 
             LibGit2.delete_branch(LibGit2.lookup_branch(pkg_repo, name_of_release_branch))
 
-            pkg_owner_repo_name = get_repo_onwer_from_url(pkg_url)
-
             gh_pkg_repo = GitHub.repo(pkg_owner_repo_name, auth=myauth)
 
             GitHub.create_pull_request(gh_pkg_repo, auth=myauth, params=Dict(:title=>"New version: v$version_to_be_tagged", :head=>name_of_release_branch, :base=>name_of_old_branch_in_pkg, :body=>""))
@@ -261,9 +264,17 @@ function tag_internal(
                 mktempdir() do tmp_path
                     cd(tmp_path) do
                         folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
-                        regbranch = RegistryTools.register(pkg_url, project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
+                        regbranch = RegistryTools.register(https_url_from_git_url(pkg_url), project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
 
                         @info regbranch.metadata
+
+                        # Push over the same transport the package itself uses:
+                        # someone working over ssh has no https credentials.
+                        registry_fork_url = if uses_ssh_transport(pkg_url)
+                            ssh_url_from_repo(parse_git_url(registry_fork_https_url).host, registry_fork_owner_repo_name)
+                        else
+                            registry_fork_https_url
+                        end
 
                         registry_repo = GitRepo(folder_for_registry)
                         try
