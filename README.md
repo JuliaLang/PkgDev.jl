@@ -20,6 +20,19 @@ Both https and ssh remotes are supported for the package repository: the
 that a GitHub API token is required in all cases, since `PkgDev.tag` opens pull
 requests on your behalf. The package and its registry must be hosted on GitHub.
 
+### Credentials
+
+`PkgDev.tag` talks to the GitHub API to open pull requests, so it needs a
+[personal access token](https://github.com/settings/tokens). It looks for one in
+three places, in order: the `credentials` keyword argument, the `GITHUB_TOKEN`
+environment variable, and the credentials your git credential manager has stored
+for github.com. Note that some credential managers store a password rather than
+a token, and the GitHub API does not accept passwords.
+
+Your GitHub username is read from the `github.user` git setting, and asked of
+GitHub if that is not configured. Pass the `github_username` keyword argument to
+override it.
+
 If you want to add custom release notes for [TagBot](https://github.com/JuliaRegistries/TagBot), do so with the `release_notes` keyword.
 
 `PkgDev.tag` runs through the following process when it tags a new version:
