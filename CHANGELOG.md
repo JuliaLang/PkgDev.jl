@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The GitHub token can now be supplied through the `GITHUB_TOKEN` environment
+  variable, in addition to the existing `credentials` keyword argument and the git
+  credential manager. All three are now documented in the README ([#170]).
+
 ### Fixed
 
+- A credential the GitHub API rejects now produces an error that says so and names
+  the ways to supply a personal access token, rather than an opaque HTTP error.
+  This is what happens when the git credential manager stores a password instead
+  of a token ([#158]).
+- An unset `github.user` git setting is no longer an error: the username is asked
+  of GitHub instead.
 - `PkgDev.tag` no longer insists on a fork of the registry: if you can push to the
   registry itself, which is the case when you own it, the registration branch now
   goes there directly and the pull request is opened from it ([#185]). Owning a
@@ -43,5 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The minimum supported Julia version is now 1.10 (was 1.6).
 
+[#158]: https://github.com/JuliaLang/PkgDev.jl/issues/158
+[#170]: https://github.com/JuliaLang/PkgDev.jl/issues/170
 [#185]: https://github.com/JuliaLang/PkgDev.jl/issues/185
 [#188]: https://github.com/JuliaLang/PkgDev.jl/issues/188

@@ -136,4 +136,20 @@ end
     @test PkgDev.is_fork_of(via_source, foreign)
 end
 
+
+@testset "github_token" begin
+    # An explicitly passed token is used as-is.
+    @test PkgDev.github_token("explicit-token") == "explicit-token"
+
+    withenv("GITHUB_TOKEN" => "token-from-env") do
+        @test PkgDev.github_token(nothing) == "token-from-env"
+
+        # ... and still wins over the environment.
+        @test PkgDev.github_token("explicit-token") == "explicit-token"
+    end
+
+    # The remaining fallback reads the git credential manager, which is not
+    # something the test suite can set up.
+end
+
 end
