@@ -81,8 +81,12 @@ function compute_tag_versions(current::VersionNumber, version::Union{Symbol,Vers
         VersionNumber(current.major, current.minor, current.patch)
     elseif version isa VersionNumber
         version
+    elseif version==:major && current.prerelease==("DEV",) && current.minor==0 && current.patch==0
+        VersionNumber(current.major, 0, 0)
     elseif version==:major
         VersionNumber(current.major+1, 0, 0)
+    elseif version==:minor && current.prerelease==("DEV",) && current.patch==0
+        VersionNumber(current.major, current.minor, 0)
     elseif version==:minor
         VersionNumber(current.major, current.minor+1, 0)
     elseif version==:patch && current.prerelease==("DEV",)

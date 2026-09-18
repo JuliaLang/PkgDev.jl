@@ -17,6 +17,19 @@ using Test
     @test PkgDev.compute_tag_versions(v"1.2.3-DEV", :minor) == (v"1.3.0", v"1.3.1-DEV")
     @test PkgDev.compute_tag_versions(v"1.2.3-DEV", :major) == (v"2.0.0", v"2.0.1-DEV")
 
+    # A -DEV version that already is the requested release just strips the suffix,
+    # rather than bumping past it.
+    @test PkgDev.compute_tag_versions(v"1.3.0-DEV", :minor) == (v"1.3.0", v"1.3.1-DEV")
+    @test PkgDev.compute_tag_versions(v"2.0.0-DEV", :major) == (v"2.0.0", v"2.0.1-DEV")
+
+    # ... but only when every lower component is already zero.
+    @test PkgDev.compute_tag_versions(v"1.2.0-DEV", :major) == (v"2.0.0", v"2.0.1-DEV")
+    @test PkgDev.compute_tag_versions(v"1.0.3-DEV", :major) == (v"2.0.0", v"2.0.1-DEV")
+
+    # A released (non -DEV) version always bumps.
+    @test PkgDev.compute_tag_versions(v"1.2.0", :minor) == (v"1.3.0", v"1.3.1-DEV")
+    @test PkgDev.compute_tag_versions(v"2.0.0", :major) == (v"3.0.0", v"3.0.1-DEV")
+
     # An explicit version is used as-is.
     @test PkgDev.compute_tag_versions(v"1.2.3-DEV", v"5.6.7") == (v"5.6.7", v"5.6.8-DEV")
 
