@@ -163,6 +163,58 @@ function resolve_registry_push_target(gh_registry_repo, github_username, auth)
     )
 end
 
+"""
+    github_token(credentials)
+
+Return the token to authenticate against the GitHub API with: the one passed in,
+otherwise `ENV["GITHUB_TOKEN"]`, otherwise whatever the git credential manager
+has stored for github.com.
+"""
+function github_token(credentials::Union{AbstractString,Nothing})
+    credentials===nothing || return String(credentials)
+
+    token_from_env = get(ENV, "GITHUB_TOKEN", "")
+    isempty(token_from_env) || return token_from_env
+
+    creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
+
+    try
+        creds.password===nothing && error("""
+            Did not find any GitHub credentials. PkgDev needs a personal access
+            token to open pull requests on your behalf. Either pass one as the
+            `credentials` keyword argument, set the GITHUB_TOKEN environment
+            variable, or store one for github.com in your git credential manager.""")
+
+        return read(creds.password, String)
+    finally
+        Base.shred!(creds)
+    end
+end
+
+"""
+    github_auth(credentials)
+
+Authenticate against the GitHub API with the token [`github_token`](@ref) finds.
+"""
+function github_auth(credentials::Union{AbstractString,Nothing})
+    token = github_token(credentials)
+
+    try
+        return GitHub.authenticate(token)
+    catch err
+        # The git credential manager stores whatever git itself authenticates
+        # with, which for some setups is a password rather than a token, and the
+        # GitHub API does not accept passwords at all.
+        error("""
+            GitHub did not accept the credentials PkgDev found. If they came from
+            your git credential manager, they may be a password rather than a
+            personal access token; pass a token as the `credentials` keyword
+            argument or set the GITHUB_TOKEN environment variable.
+
+            GitHub reported: $(sprint(showerror, err))""")
+    end
+end
+
 function tag_internal(
         package_name::AbstractString,
         pkg_uuid, pkg_path::AbstractString,
@@ -173,11 +225,6 @@ function tag_internal(
         github_username::Union{AbstractString, Nothing} = nothing)
 
     general_reg_url = "https://github.com/JuliaRegistries/General"
-
-    if github_username===nothing
-        github_username = LibGit2.getconfig("github.user", "")
-        github_username == "" && error("You need to configure the github.user setting.")
-    end
 
     isdir(pkg_path) || error("Path for package does not exist on disc.")
 
@@ -213,16 +260,25 @@ function tag_internal(
         private_reg_uuid = nothing
     end
 
-    if credentials===nothing        
-        creds = LibGit2.GitCredential(GitConfig(), "https://github.com")
+    myauth = github_auth(credentials)
 
-        creds.password===nothing && error("Did not find credentials for github.com in the git credential manager.")
+    if github_username===nothing
+        github_username = LibGit2.getconfig("github.user", "")
 
-        credentials = read(creds.password, String)
-        Base.shred!(creds.password)
+        if github_username==""
+            # Nothing configured, so ask GitHub who the token belongs to.
+            github_username = try
+                String(GitHub.whoami(auth=myauth).login)
+            catch err
+                error("""
+                    Could not work out your GitHub username. Configure it with
+                    `git config --global github.user <username>` or pass it as
+                    the `github_username` keyword argument.
+
+                    GitHub reported: $(sprint(showerror, err))""")
+            end
+        end
     end
-
-    myauth = GitHub.authenticate(credentials)
 
     # A registration in General goes through Registrator, which needs neither the
     # registry repository nor a fork of it. Resolving them anyway meant paging
