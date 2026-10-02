@@ -102,6 +102,67 @@ function compute_tag_versions(current::VersionNumber, version::Union{Symbol,Vers
     return version_to_be_tagged, next_version
 end
 
+"""
+    is_fork_of(gh_repo, gh_parent_repo)
+
+Whether `gh_repo` is a fork of `gh_parent_repo`.
+"""
+function is_fork_of(gh_repo, gh_parent_repo)
+    gh_repo===nothing && return false
+    gh_repo.fork===true || return false
+
+    for ancestor in (gh_repo.parent, gh_repo.source)
+        ancestor===nothing && continue
+        ancestor.full_name==gh_parent_repo.full_name && return true
+    end
+
+    return false
+end
+
+"""
+    resolve_registry_push_target(gh_registry_repo, github_username, auth)
+
+Work out where the registration branch for `gh_registry_repo` should be pushed.
+
+Someone who can push to the registry itself (its owner, a collaborator, a member
+of the owning organisation) does not have, and cannot make, a fork of it, so the
+branch goes straight to the registry. Everyone else pushes to their own fork and
+opens a cross-repository pull request from it.
+"""
+function resolve_registry_push_target(gh_registry_repo, github_username, auth)
+    permissions = gh_registry_repo.permissions
+    if permissions!==nothing && get(permissions, "push", false)===true
+        return (
+            owner_repo_name = string(gh_registry_repo.full_name),
+            https_url = string(gh_registry_repo.html_url),
+            is_fork = false
+        )
+    end
+
+    # A fork keeps the name of the repository it was made from, so look it up
+    # directly rather than paging through every fork of the registry.
+    gh_fork = try
+        GitHub.repo("$github_username/$(gh_registry_repo.name)", auth=auth)
+    catch
+        nothing
+    end
+
+    if !is_fork_of(gh_fork, gh_registry_repo)
+        # A fork can be renamed though, and then there is no way around asking
+        # for the whole list.
+        gh_forks = GitHub.forks(gh_registry_repo, auth=auth)
+        fork_index = findfirst(i->i.owner.login==github_username, gh_forks[1])
+        fork_index===nothing && error("You need either push access to the registry $(gh_registry_repo.full_name) or a fork of it in the GitHub account $github_username.")
+        gh_fork = gh_forks[1][fork_index]
+    end
+
+    return (
+        owner_repo_name = string(gh_fork.full_name),
+        https_url = string(gh_fork.html_url),
+        is_fork = true
+    )
+end
+
 function tag_internal(
         package_name::AbstractString,
         pkg_uuid, pkg_path::AbstractString,
@@ -163,14 +224,18 @@ function tag_internal(
 
     myauth = GitHub.authenticate(credentials)
 
-    registry_github_owner_repo_name = private_reg_url===nothing ? "JuliaRegistries/General" : get_repo_onwer_from_url(private_reg_url)
+    # A registration in General goes through Registrator, which needs neither the
+    # registry repository nor a fork of it. Resolving them anyway meant paging
+    # through every single fork of JuliaRegistries/General on every tag.
+    gh_registry_repo, registry_push_target = if private_reg_url===nothing
+        (nothing, nothing)
+    else
+        registry_repo_on_github = GitHub.repo(get_repo_onwer_from_url(private_reg_url), auth=myauth)
 
-    gh_registry_repo = GitHub.repo(registry_github_owner_repo_name, auth=myauth)
-    gh_forks = GitHub.forks(gh_registry_repo, auth=myauth)
-    fork_index = findfirst(i->i.owner.login==github_username, gh_forks[1])
-    fork_index===nothing && error("You need to have a fork of the registry in your github account.")
-    registry_fork_https_url = string(gh_forks[1][fork_index].html_url)
-    registry_fork_owner_repo_name = string(gh_forks[1][fork_index].full_name)
+        # Resolved here, before the release branch is created, so that missing
+        # access fails before anything has been committed or pushed.
+        (registry_repo_on_github, resolve_registry_push_target(registry_repo_on_github, github_username, myauth))
+    end
 
     pkg_repo = GitRepo(pkg_path)
 
@@ -262,42 +327,49 @@ function tag_internal(
                 GitHub.create_comment(gh_pkg_repo, string(hash_of_commit_to_be_tagged), :commit, params = Dict("body"=>body), auth=myauth)
             else
                 mktempdir() do tmp_path
-                    cd(tmp_path) do
-                        folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
-                        regbranch = RegistryTools.register(https_url_from_git_url(pkg_url), project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false)
+                    # The default RegistryTools cache is the relative path
+                    # "registries", so pass one rooted in the temporary directory
+                    # instead of cd-ing the whole process into it.
+                    registry_cache = RegistryTools.RegistryCache(joinpath(tmp_path, "registries"))
+                    folder_for_registry = joinpath(tmp_path, "registries", string(private_reg_uuid))
 
-                        @info regbranch.metadata
+                    regbranch = RegistryTools.register(https_url_from_git_url(pkg_url), project_as_it_should_be_tagged, string(tree_hash_of_commit_to_be_tagged); registry=private_reg_url, registry_deps=[general_reg_url], push=false, cache=registry_cache)
 
-                        # Push over the same transport the package itself uses:
-                        # someone working over ssh has no https credentials.
-                        registry_fork_url = if uses_ssh_transport(pkg_url)
-                            ssh_url_from_repo(parse_git_url(registry_fork_https_url).host, registry_fork_owner_repo_name)
-                        else
-                            registry_fork_https_url
-                        end
+                    @info regbranch.metadata
 
-                        registry_repo = GitRepo(folder_for_registry)
-                        try
-                            run(pipeline(Cmd(`git push $registry_fork_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry); stdout=stderr))
-                        finally
-                            close(registry_repo)
-                        end
-
-                        body = ""
-                        if release_notes !== nothing
-                            # Prepend every line with '> ' to quote it (this format is expected by TagBot).
-                            notes = join(map(line -> "> $line", split(release_notes, "\n")), "\n")
-                            body *= """
-
-                                Release notes:
-                                <!-- BEGIN RELEASE NOTES -->
-                                $notes
-                                <!-- END RELEASE NOTES -->
-                                """
-                        end
-
-                        GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>"$github_username:$(regbranch.branch)", :base=>"master", :body=>strip(body)))
+                    # Push over the same transport the package itself uses:
+                    # someone working over ssh has no https credentials.
+                    registry_push_url = if uses_ssh_transport(pkg_url)
+                        ssh_url_from_repo(parse_git_url(registry_push_target.https_url).host, registry_push_target.owner_repo_name)
+                    else
+                        registry_push_target.https_url
                     end
+
+                    registry_repo = GitRepo(folder_for_registry)
+                    try
+                        run(pipeline(Cmd(`git push $registry_push_url refs/heads/$(regbranch.branch)`, dir=folder_for_registry); stdout=stderr))
+                    finally
+                        close(registry_repo)
+                    end
+
+                    body = ""
+                    if release_notes !== nothing
+                        # Prepend every line with '> ' to quote it (this format is expected by TagBot).
+                        notes = join(map(line -> "> $line", split(release_notes, "\n")), "\n")
+                        body *= """
+
+                            Release notes:
+                            <!-- BEGIN RELEASE NOTES -->
+                            $notes
+                            <!-- END RELEASE NOTES -->
+                            """
+                    end
+
+                    # A branch pushed to a fork is referred to as owner:branch,
+                    # one pushed to the registry itself just by its name.
+                    pr_head = registry_push_target.is_fork ? "$github_username:$(regbranch.branch)" : regbranch.branch
+
+                    GitHub.create_pull_request(gh_registry_repo, auth=myauth, params=Dict(:title=>"New version: $package_name v$version_to_be_tagged", :head=>pr_head, :base=>something(gh_registry_repo.default_branch, "master"), :body=>strip(body)))
                 end
             end
         catch

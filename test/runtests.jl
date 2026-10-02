@@ -1,5 +1,6 @@
 using PkgDev
 using Test
+import GitHub
 
 @testset "PkgDev" begin
 
@@ -83,6 +84,56 @@ end
     @test !PkgDev.uses_ssh_transport("http://github.com/JuliaLang/PkgDev.jl.git")
 
     @test PkgDev.ssh_url_from_repo("github.com", "JuliaLang/PkgDev.jl") == "git@github.com:JuliaLang/PkgDev.jl.git"
+end
+
+
+@testset "resolve_registry_push_target" begin
+    # GitHub.Repo objects built from the same JSON shape the API returns.
+    registry = GitHub.Repo(Dict(
+        "name" => "MyRegistry",
+        "full_name" => "me/MyRegistry",
+        "html_url" => "https://github.com/me/MyRegistry",
+        "default_branch" => "main",
+        "permissions" => Dict("push" => true, "pull" => true, "admin" => true)
+    ))
+
+    # Push access to the registry itself: no fork is needed or even possible,
+    # and the pull request head must not be prefixed with the owner.
+    target = PkgDev.resolve_registry_push_target(registry, "me", nothing)
+    @test target.owner_repo_name == "me/MyRegistry"
+    @test target.https_url == "https://github.com/me/MyRegistry"
+    @test target.is_fork == false
+
+    # A registry the user cannot push to; resolving it needs the network, so only
+    # the fork detection it relies on is exercised here.
+    foreign = GitHub.Repo(Dict(
+        "name" => "General",
+        "full_name" => "JuliaRegistries/General",
+        "html_url" => "https://github.com/JuliaRegistries/General",
+        "permissions" => Dict("push" => false, "pull" => true, "admin" => false)
+    ))
+
+    fork = GitHub.Repo(Dict(
+        "name" => "General",
+        "full_name" => "me/General",
+        "html_url" => "https://github.com/me/General",
+        "fork" => true,
+        "parent" => Dict("full_name" => "JuliaRegistries/General")
+    ))
+    @test PkgDev.is_fork_of(fork, foreign)
+    @test !PkgDev.is_fork_of(fork, registry)
+
+    # Not a fork at all, and a missing lookup.
+    @test !PkgDev.is_fork_of(GitHub.Repo(Dict("full_name" => "me/General")), foreign)
+    @test !PkgDev.is_fork_of(nothing, foreign)
+
+    # `source` is used when only it is populated.
+    via_source = GitHub.Repo(Dict(
+        "full_name" => "me/General",
+        "fork" => true,
+        "source" => Dict("full_name" => "JuliaRegistries/General")
+    ))
+    @test PkgDev.is_fork_of(via_source, foreign)
 end
 
 end
