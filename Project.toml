@@ -18,6 +18,7 @@ TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
 
 [compat]
 GitHub = "5.1.1"
+Pkg = "1.10"
 julia = "1.10"
 FilePathsBase = "0.6, 0.7, 0.8, 0.9"
 URIs = "1"
